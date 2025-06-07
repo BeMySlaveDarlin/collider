@@ -1,0 +1,21 @@
+FROM postgres:15-alpine
+
+ARG POSTGRES_DB=app_db
+ARG POSTGRES_USER=app_user
+ARG POSTGRES_PASSWORD=secret
+
+RUN apk add --no-cache \
+    curl \
+    postgresql-contrib
+
+COPY init/ /docker-entrypoint-initdb.d/
+COPY postgresql.conf /etc/postgresql/postgresql.conf
+COPY pg_hba.conf /etc/postgresql/pg_hba.conf
+
+RUN mkdir -p /var/log/postgresql \
+    && chown -R postgres:postgres /var/log/postgresql \
+    && chmod 755 /var/log/postgresql
+
+EXPOSE 5432
+
+CMD ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]

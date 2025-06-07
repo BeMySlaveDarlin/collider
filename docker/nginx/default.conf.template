@@ -1,0 +1,50 @@
+upstream php-upstream {
+    least_conn;
+    server php:9501 max_fails=3 fail_timeout=30s weight=1;
+    keepalive 32;
+    keepalive_requests 100;
+    keepalive_timeout 60s;
+}
+
+server {
+    listen 80;
+    server_name ${APP_DOMAIN};
+
+    error_log /var/log/nginx_error.log;
+    access_log /var/log/nginx_access.log timings;
+
+    add_header Access-Control-Allow-Origin *;
+    add_header X-Request-ID $request_id;
+
+    location ~ ^/system/ping.json {
+        add_header Access-Control-Allow-Origin *;
+        return 200 '{"data":{"pong":true,"version":"1"},"ttl":0,"state":200}';
+        expires epoch;
+    }
+
+    location /health {
+        access_log off;
+        return 200 "OK\n";
+        add_header Content-Type text/plain;
+    }
+
+    location / {
+        proxy_pass http://php-upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 30s;
+        proxy_buffering off;
+    }
+
+    location /metrics {
+        proxy_pass http://php:9502/metrics;
+        proxy_set_header Host $host;
+        access_log off;
+    }
+}

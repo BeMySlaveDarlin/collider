@@ -3,6 +3,7 @@
 - **PHP 8 with ext**
   - Swoole
   - Redis
+  - Spiral Framework
 - **Web Server**
   - NGINX
 - **Storages**
@@ -11,5 +12,5 @@
 - **Misc**
   - Composer
   - RabbitMQ
-  - Supervisor
   - Docker, docker-compose
+  - RoadRunner

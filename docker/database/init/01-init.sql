@@ -1,0 +1,8 @@
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pg_stat_statements";
+CREATE EXTENSION IF NOT EXISTS "btree_gin";
+CREATE EXTENSION IF NOT EXISTS "btree_gist";
+
+CREATE SCHEMA IF NOT EXISTS public;
+
+ALTER DATABASE app_db SET timezone TO 'Europe/Moscow';

@@ -1,0 +1,167 @@
+services:
+  php:
+    container_name: ${APP_NAME}.service.php
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: php_${APP_ENV:-dev}
+    restart: unless-stopped
+    env_file:
+      - .env
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: ["php", "bin/http.php", "start"]
+    depends_on:
+      - composer
+      - database
+      - redis
+      - rabbitmq
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  queue:
+    container_name: ${APP_NAME}.service.queue
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: php_${APP_ENV:-dev}
+    restart: unless-stopped
+    env_file:
+      - .env
+    working_dir: /app
+    volumes:
+      - .:/app
+    command: ["rr", "serve", "-c", "docker/roadrunner/.rr.jobs.yaml"]
+    depends_on:
+      - composer
+      - database
+      - redis
+      - rabbitmq
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  composer:
+    container_name: ${APP_NAME}.service.composer
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: composer_${APP_ENV:-dev}
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    networks:
+      - app-network
+
+  nginx:
+    container_name: ${APP_NAME}.service.nginx
+    build:
+      context: docker/nginx
+      dockerfile: Dockerfile
+    ports:
+      - 80:80
+      - 443:443
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - php
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  database:
+    container_name: ${APP_NAME}.service.database
+    image: postgres:15
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      TZ: ${TIMEZONE}
+    ports:
+      - ${DB_PORTS}
+    volumes:
+      - database-data:/var/lib/postgresql/data
+      - ./docker/database/init:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    container_name: ${APP_NAME}.service.redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+    command: [ "redis-server", "--appendonly", "yes" ]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  rabbitmq:
+    container_name: ${APP_NAME}.service.rabbitmq
+    build:
+      context: docker/rabbit-mq
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    ports:
+      - 15672:15672
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  database-data:
+  redis-data:
+  rabbitmq-data:
+
+networks:
+  app-network:
+    driver: bridge

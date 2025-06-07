@@ -1,0 +1,60 @@
+version: "3"
+
+rpc:
+  listen: tcp://127.0.0.1:6001
+
+server:
+  command: "php /app/bin/app.php"
+  relay: pipes
+  pool:
+    num_workers: 4
+    max_jobs: 0
+    allocate_timeout: 60s
+    destroy_timeout: 60s
+
+jobs:
+  pool:
+    num_workers: 4
+    max_jobs: 0
+    allocate_timeout: 60s
+    destroy_timeout: 60s
+  consume: ["rabbitmq"]
+  pipelines:
+    rabbitmq:
+      driver: amqp
+      config:
+        queue: "${RABBITMQ_QUEUE_PREFIX}default"
+        exchange: "${RABBITMQ_EXCHANGE}"
+        routing_key: "${RABBITMQ_QUEUE_PREFIX}default"
+        prefetch: 100
+        durable: true
+        auto_delete: false
+        no_ack: false
+
+amqp:
+  addr: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@${RABBITMQ_HOST}:${RABBITMQ_PORT}/${RABBITMQ_VHOST}
+  declare:
+    exchanges:
+      - name: "${RABBITMQ_EXCHANGE}"
+        type: direct
+        durable: true
+        auto_delete: false
+    queues:
+      - name: "${RABBITMQ_QUEUE_PREFIX}default"
+        durable: true
+        auto_delete: false
+    bindings:
+      - exchange: "${RABBITMQ_EXCHANGE}"
+        queue: "${RABBITMQ_QUEUE_PREFIX}default"
+        routing_key: "${RABBITMQ_QUEUE_PREFIX}default"
+
+redis:
+  addrs:
+    - "redis:6379"
+
+logs:
+  mode: ${QUEUE_LOGS_MODE:-development}
+  channels:
+    default:
+      level: debug
+      output: stderr
