@@ -17,7 +17,6 @@ use Spiral\Bootloader as Framework;
 use Spiral\Bootloader\Http\HttpBootloader;
 use Spiral\Cache\Bootloader\CacheBootloader;
 use Spiral\Cycle\Bootloader as CycleBridge;
-use Spiral\Debug\Bootloader\DumperBootloader;
 use Spiral\DotEnv\Bootloader\DotenvBootloader;
 use Spiral\Events\Bootloader\EventsBootloader;
 use Spiral\Framework\Kernel;
@@ -51,7 +50,6 @@ final class Application extends Kernel
             CoreBootloader::class,
             DotenvBootloader::class,
             TokenizerListenerBootloader::class,
-            DumperBootloader::class,
         ];
     }
 

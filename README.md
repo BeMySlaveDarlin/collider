@@ -2,6 +2,10 @@
 
 Low-performance event tracking system built with Swoole and Spiral Framework.
 
+#### Based on task
+
+https://gist.github.com/BeMySlaveDarlin/102194669142f0d70ce7d0412f2386b9
+
 ## Requirements
 
 - **PHP 8 with**

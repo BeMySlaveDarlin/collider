@@ -2,7 +2,7 @@ include .env
 
 .PHONY: all build up down restart logs shell composer help cs-check cs-fix cs-fix-diff psalm psalm-baseline psalm-fix psalm-info
 
-all: var composer build up
+all: var composer build up migrate
 
 var:
 	mkdir -p var/cache
@@ -34,6 +34,9 @@ logs:
 
 shell:
 	docker compose exec php bash
+
+migrate:
+	docker-compose exec php php bin/app.php migrate --force
 
 seed:
 	docker-compose exec php php bin/app.php events:seed

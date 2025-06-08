@@ -8,7 +8,6 @@ use Override;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Spiral\Bootloader\Http\RoutesBootloader as BaseRoutesBootloader;
-use Spiral\Debug\Middleware\DumperMiddleware;
 use Spiral\Debug\StateCollector\HttpCollector;
 use Spiral\Http\Middleware\ErrorHandlerMiddleware;
 use Spiral\Http\Middleware\JsonPayloadMiddleware;
@@ -24,7 +23,6 @@ final class RoutesBootloader extends BaseRoutesBootloader
     {
         return [
             ErrorHandlerMiddleware::class,
-            DumperMiddleware::class,
             JsonPayloadMiddleware::class,
             HttpCollector::class,
         ];
