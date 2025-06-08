@@ -83,7 +83,7 @@ final class Server
             'pid_file' => $this->swooleConfig['pid_file'] ?? '/app/var/swoole.pid',
             'enable_static_handler' => $this->swooleConfig['enable_static_handler'] ?? true,
             'document_root' => $this->swooleConfig['document_root'] ?? '/app/public',
-            'static_handler_locations' => $this->swooleConfig['static_handler_locations'] ?? ['/'],
+            'static_handler_locations' => $this->swooleConfig['static_handler_locations'] ?? ['/assets'],
         ]);
     }
 
