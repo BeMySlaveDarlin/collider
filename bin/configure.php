@@ -13,7 +13,6 @@ $directories = [
     ROOT_PATH . '/var',
     ROOT_PATH . '/var/log',
     ROOT_PATH . '/var/storage',
-    ROOT_PATH . '/var/runtime',
     ROOT_PATH . '/var/cache',
 ];
 

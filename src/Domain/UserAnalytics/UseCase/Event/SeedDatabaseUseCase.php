@@ -71,7 +71,7 @@ final readonly class SeedDatabaseUseCase
 
         for ($i = 1; $i <= $this->seedPolicy->getUsersCount(); $i++) {
             $values[] = sprintf(
-                "(%s)",
+                '(%s)',
                 $this->database->getDriver()->quote($this->faker->name())
             );
         }
@@ -95,7 +95,7 @@ final readonly class SeedDatabaseUseCase
 
         foreach ($types as $type => $params) {
             $values[] = sprintf(
-                "(%s)",
+                '(%s)',
                 $this->database->getDriver()->quote($type)
             );
         }

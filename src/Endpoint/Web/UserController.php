@@ -50,14 +50,14 @@ final readonly class UserController
     public function events(ServerRequestInterface $request): ResponseInterface
     {
         $query = $request->getQueryParams();
-        $userId = (int)$query['user_id'];
+        $userId = (int) $query['user_id'];
         if (empty($userId)) {
             return $this->response->json([
                 'error' => 'User ID cannot be empty',
             ], 400);
         }
 
-        $limit = min(1000, max(1, (int)($query['limit'] ?? 1000)));
+        $limit = min(1000, max(1, (int) ($query['limit'] ?? 1000)));
 
         try {
             $userEventsRequest = new GetUserEventsRequest(
@@ -69,7 +69,7 @@ final readonly class UserController
 
             return $this->response->json([
                 'user_id' => $userId,
-                'events' => array_map(static fn($event) => [
+                'events' => array_map(static fn ($event) => [
                     'id' => $event['id'],
                     'type' => $event['event_type'],
                     'timestamp' => $event['timestamp'],

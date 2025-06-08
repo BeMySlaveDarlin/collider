@@ -2,3 +2,4 @@
 /var
 /vendor
 .env
+.php-cs-fixer.php

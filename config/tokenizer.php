@@ -13,6 +13,7 @@ return [
         'config',
         'storage',
         'runtime',
+        'var',
         'public',
     ],
 ];

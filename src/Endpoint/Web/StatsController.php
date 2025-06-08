@@ -40,7 +40,7 @@ final readonly class StatsController
             }
 
             if (isset($query['limit'])) {
-                $limit = (int)$query['limit'];
+                $limit = (int) $query['limit'];
             }
 
             if ($from && $to && $from > $to) {

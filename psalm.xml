@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<psalm
+  errorLevel="1"
+  resolveFromConfigFile="true"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="https://getpsalm.org/schema/config"
+  xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
+  findUnusedBaselineEntry="true"
+  findUnusedCode="false"
+  checkForThrowsDocblock="true"
+  checkForThrowsInGlobalScope="true"
+  ensureArrayStringOffsetsExist="true"
+  ensureArrayIntOffsetsExist="true"
+  findUnusedVariablesAndParams="false"
+  strictBinaryOperands="true"
+  hoistConstants="true"
+  allowPhpStormGenerics="true"
+  allowStringToStandInForClass="false"
+  memoizeMethodCallResults="true"
+  reportMixedIssues="true"
+  taintAnalysis="false"
+>
+  <projectFiles>
+    <directory name="src"/>
+    <ignoreFiles>
+      <directory name="database"/>
+      <directory name="docker"/>
+      <directory name="docs"/>
+      <directory name="public"/>
+      <directory name="var"/>
+      <directory name="vendor"/>
+    </ignoreFiles>
+  </projectFiles>
+
+  <issueHandlers>
+    <PropertyNotSetInConstructor>
+      <errorLevel type="suppress">
+        <directory name="src/Domain/*/Entity"/>
+      </errorLevel>
+    </PropertyNotSetInConstructor>
+
+    <MissingConstructor>
+      <errorLevel type="suppress">
+        <directory name="src/Domain/*/Entity"/>
+      </errorLevel>
+    </MissingConstructor>
+
+    <UndefinedDocblockClass>
+      <errorLevel type="suppress">
+        <file name="src/Domain/*/Repository/*Repository.php"/>
+      </errorLevel>
+    </UndefinedDocblockClass>
+
+    <MissingClosureReturnType>
+      <errorLevel type="info"/>
+    </MissingClosureReturnType>
+
+    <MissingReturnType>
+      <errorLevel type="info"/>
+    </MissingReturnType>
+
+    <MissingParamType>
+      <errorLevel type="info"/>
+    </MissingParamType>
+
+    <MissingPropertyType>
+      <errorLevel type="info"/>
+    </MissingPropertyType>
+
+    <RedundantCondition>
+      <errorLevel type="info"/>
+    </RedundantCondition>
+
+    <UnusedVariable>
+      <errorLevel type="info"/>
+    </UnusedVariable>
+
+    <UnusedParam>
+      <errorLevel type="info"/>
+    </UnusedParam>
+  </issueHandlers>
+
+</psalm>

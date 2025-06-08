@@ -31,7 +31,7 @@ final class Server
         $this->swooleConfig = $this->config->getConfig('swoole');
         $this->server = new HttpServer(
             $this->swooleConfig['host'] ?? '0.0.0.0',
-            (int)($this->swooleConfig['port'] ?? 9501),
+            (int) ($this->swooleConfig['port'] ?? 9501),
             SWOOLE_PROCESS,
             SWOOLE_SOCK_TCP
         );
@@ -80,7 +80,7 @@ final class Server
             'socket_buffer_size' => $this->swooleConfig['socket_buffer_size'] ?? 128 * 1024 * 1024,
             'log_file' => $this->swooleConfig['log_file'] ?? '/app/var/log/swoole.log',
             'log_level' => $this->swooleConfig['log_level'] ?? SWOOLE_LOG_INFO,
-            'pid_file' => $this->swooleConfig['pid_file'] ?? '/app/var/runtime/swoole.pid',
+            'pid_file' => $this->swooleConfig['pid_file'] ?? '/app/var/swoole.pid',
             'enable_static_handler' => $this->swooleConfig['enable_static_handler'] ?? true,
             'document_root' => $this->swooleConfig['document_root'] ?? '/app/public',
             'static_handler_locations' => $this->swooleConfig['static_handler_locations'] ?? ['/'],
@@ -167,7 +167,7 @@ final class Server
     {
         return $this->container->get(ScopeInterface::class)->runScope(
             ['request' => $request],
-            fn() => $this->container->get(Http::class)->handle($request)
+            fn () => $this->container->get(Http::class)->handle($request)
         );
     }
 

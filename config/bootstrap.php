@@ -9,8 +9,8 @@ if (!function_exists('directory')) {
     {
         $directories = [
             'app' => ROOT_PATH,
+            'runtime' => ROOT_PATH . '/var',
             'logs' => ROOT_PATH . '/var/log',
-            'runtime' => ROOT_PATH . '/var/runtime',
             'storage' => ROOT_PATH . '/var/storage',
             'public' => ROOT_PATH . '/public',
             'cache' => ROOT_PATH . '/var/cache',

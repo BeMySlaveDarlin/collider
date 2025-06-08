@@ -20,7 +20,7 @@ readonly class DeleteOldEventsTask implements TaskInterface
             return;
         }
 
-        $deleteSql = "DELETE FROM events WHERE timestamp < ?";
+        $deleteSql = 'DELETE FROM events WHERE timestamp < ?';
 
         $deleted = $this->database->execute($deleteSql, [$before]);
 

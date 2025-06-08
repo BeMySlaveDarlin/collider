@@ -110,27 +110,28 @@ final class Handler implements ExceptionHandlerInterface
                 ], JSON_THROW_ON_ERROR);
             }
         } catch (Throwable $handlerException) {
-            error_log(
+            $this->logger->error(
                 sprintf(
-                    "Exception handler failed: %s. Original exception: %s",
+                    'Exception handler failed: %s. Original exception: %s',
                     $handlerException->getMessage(),
                     $e->getMessage()
-                )
+                ),
+                ['exception' => $handlerException->getMessage()]
             );
         }
     }
 
     public function getRenderer(?string $format = null): ?ExceptionRendererInterface
     {
-        $format = $format ?? 'json';
+        $format ??= 'json';
 
         return $this->renderers[$format] ?? null;
     }
 
     public function render(Throwable $exception, ?Verbosity $verbosity = Verbosity::BASIC, ?string $format = null): string
     {
-        $format = $format ?? 'json';
-        $verbosity = $verbosity ?? Verbosity::BASIC;
+        $format ??= 'json';
+        $verbosity ??= Verbosity::BASIC;
 
         $renderer = $this->getRenderer($format);
         if ($renderer !== null) {
@@ -150,12 +151,13 @@ final class Handler implements ExceptionHandlerInterface
         try {
             $this->handle($exception);
         } catch (Throwable $reportingException) {
-            error_log(
+            $this->logger->error(
                 sprintf(
-                    "Failed to report exception: %s. Original exception: %s",
+                    'Failed to report exception: %s. Original exception: %s',
                     $reportingException->getMessage(),
                     $exception->getMessage()
-                )
+                ),
+                ['exception' => $reportingException->getMessage()]
             );
         }
     }
@@ -221,7 +223,7 @@ final class Handler implements ExceptionHandlerInterface
             'file' => $exception->getFile(),
             'line' => $exception->getLine(),
             'request_method' => $request->getMethod(),
-            'request_uri' => (string)$request->getUri(),
+            'request_uri' => (string) $request->getUri(),
             'user_agent' => $request->getHeaderLine('User-Agent'),
         ];
 
@@ -257,7 +259,7 @@ final class Handler implements ExceptionHandlerInterface
             $statusCode,
             [
                 'Content-Type' => 'application/json',
-                'Content-Length' => (string)strlen($json),
+                'Content-Length' => (string) strlen($json),
             ],
             $json
         );

@@ -23,10 +23,10 @@ $app = Application::create(
     directories: [
         'root' => ROOT_PATH,
         'app' => ROOT_PATH,
+        'runtime' => ROOT_PATH . '/var',
         'config' => ROOT_PATH . '/config',
         'cache' => ROOT_PATH . '/var/cache',
         'logs' => ROOT_PATH . '/var/log',
-        'runtime' => ROOT_PATH . '/var',
     ],
     container: $container
 );

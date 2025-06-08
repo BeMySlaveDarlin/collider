@@ -57,9 +57,9 @@ readonly class EventRepository implements RepositoryInterface
 
     public function findBeforeDate(DateTimeInterface $date): int
     {
-        $sql = "SELECT COUNT(*) as total FROM events WHERE timestamp <= ?";
+        $sql = 'SELECT COUNT(*) as total FROM events WHERE timestamp <= ?';
 
-        return (int)$this->database->query($sql, [$date->format('Y-m-d H:i:s')])->fetch()['total'];
+        return (int) $this->database->query($sql, [$date->format('Y-m-d H:i:s')])->fetch()['total'];
     }
 
     public function getStats(
@@ -95,7 +95,7 @@ readonly class EventRepository implements RepositoryInterface
         ";
 
         $totalEventsResult = $this->database->query($totalEventsSql, $parameters)->fetch();
-        $totalEvents = (int)$totalEventsResult['total_events'];
+        $totalEvents = (int) $totalEventsResult['total_events'];
 
         $uniqueUsersSql = "
             SELECT COUNT(DISTINCT e.user_id) as unique_users
@@ -104,7 +104,7 @@ readonly class EventRepository implements RepositoryInterface
         ";
 
         $uniqueUsersResult = $this->database->query($uniqueUsersSql, $parameters)->fetch();
-        $uniqueUsers = (int)$uniqueUsersResult['unique_users'];
+        $uniqueUsers = (int) $uniqueUsersResult['unique_users'];
 
         $topPagesSql = "
             SELECT
@@ -122,7 +122,7 @@ readonly class EventRepository implements RepositoryInterface
         $topPages = [];
         foreach ($topPagesResult as $row) {
             $page = trim($row['page'], '"') ?: 'unknown';
-            $topPages[$page] = (int)$row['page_count'];
+            $topPages[$page] = (int) $row['page_count'];
         }
 
         return [
@@ -138,7 +138,7 @@ readonly class EventRepository implements RepositoryInterface
             ->query('SELECT COUNT(*) as total FROM events')
             ->fetch();
 
-        return (int)($result['total'] ?? 0);
+        return (int) ($result['total'] ?? 0);
     }
 
     public function findByPK(mixed $id): ?object

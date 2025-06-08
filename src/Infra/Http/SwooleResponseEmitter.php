@@ -28,7 +28,7 @@ final class SwooleResponseEmitter
                 $body->rewind();
             }
 
-            $content = (string)$body->getContents();
+            $content = (string) $body->getContents();
 
             $contentType = $psrResponse->getHeaderLine('Content-Type');
             if (str_contains($contentType, 'application/json')) {

@@ -25,7 +25,7 @@ final class EventsSeedCommand extends Command
         $this->info('Starting database seeding...');
 
         $this->seedDatabaseUseCase->execute(
-            fn(string $message) => $this->info($message)
+            fn (string $message) => $this->info($message)
         );
 
         $this->info('Database seeding completed.');

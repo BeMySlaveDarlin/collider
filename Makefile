@@ -1,13 +1,12 @@
 include .env
 
-.PHONY: all build up down restart logs shell composer help
+.PHONY: all build up down restart logs shell composer help cs-check cs-fix cs-fix-diff psalm psalm-baseline psalm-fix psalm-info
 
 all: var composer build up
 
 var:
 	mkdir -p var/cache
 	mkdir -p var/log
-	mkdir -p var/runtime
 	mkdir -p var/storage
 	chmod -R 777 var
 
@@ -26,7 +25,6 @@ down:
 	docker compose down
 	rm -rf var/log/*
 	rm -rf var/cache/*
-	rm -rf var/runtime/*
 
 restart:
 	docker compose restart
@@ -39,6 +37,27 @@ shell:
 
 seed:
 	docker-compose exec php php bin/app.php events:seed
+
+cs-check:
+	docker compose exec php php-cs-fixer fix --dry-run --diff
+
+cs-fix:
+	docker compose exec php php-cs-fixer fix
+
+cs-fix-diff:
+	docker compose exec php php-cs-fixer fix --diff
+
+psalm:
+	docker compose exec php psalm --no-cache
+
+psalm-baseline:
+	docker compose exec php psalm --set-baseline=psalm-baseline.xml
+
+psalm-clear:
+	./vendor/bin/psalm --clear-cache
+
+psalm-config:
+	./vendor/bin/psalm --init
 
 help:
 	@echo "Available commands:"
@@ -53,3 +72,6 @@ help:
 	@echo "  var         - Creates var dirs"
 	@echo "  seed        - Seeds database with data"
 	@echo "  composer    - Run composer install"
+	@echo "  cs-check    - Check code style (dry-run)"
+	@echo "  cs-fix      - Fix code style"
+	@echo "  cs-fix-diff - Fix code style with diff"
