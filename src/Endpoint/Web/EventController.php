@@ -52,7 +52,7 @@ final readonly class EventController
                 'user_id' => $event->user_id,
                 'type' => $event->type->name,
                 'timestamp' => $event->timestamp->format('c'),
-                'metadata' => json_decode($event['metadata'], true, 512, JSON_THROW_ON_ERROR),
+                'metadata' => json_decode($event->metadata, true, 512, JSON_THROW_ON_ERROR),
             ], 201);
         } catch (Exception $e) {
             return $this->response->json([
@@ -66,8 +66,8 @@ final readonly class EventController
     {
         $query = $request->getQueryParams();
 
-        $page = max(1, (int) ($query['page'] ?? 1));
-        $limit = min(1000, max(1, (int) ($query['limit'] ?? 100)));
+        $page = max(1, (int)($query['page'] ?? 1));
+        $limit = min(1000, max(1, (int)($query['limit'] ?? 100)));
 
         $getRequest = new GetEventsRequest(
             page: $page,
@@ -78,7 +78,7 @@ final readonly class EventController
             $result = $this->getEventsUseCase->execute($getRequest);
 
             return $this->response->json([
-                'data' => array_map(static fn ($event) => [
+                'data' => array_map(static fn($event) => [
                     'id' => $event['id'],
                     'user_id' => $event['user_id'],
                     'type' => $event['event_type'],
