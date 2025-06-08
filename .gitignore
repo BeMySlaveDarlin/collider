@@ -2,4 +2,3 @@
 /var
 /vendor
 .env
-docker-compose.override.yml

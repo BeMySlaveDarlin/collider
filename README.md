@@ -11,6 +11,4 @@
   - Redis
 - **Misc**
   - Composer
-  - RabbitMQ
   - Docker, docker-compose
-  - RoadRunner

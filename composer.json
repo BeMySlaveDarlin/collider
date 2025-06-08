@@ -1,0 +1,63 @@
+{
+  "name": "app/analytics",
+  "type": "project",
+  "description": "RESTful API on Spiral Framework with Swoole",
+  "require": {
+    "php": ">=8.3",
+    "ext-json": "*",
+    "ext-pdo": "*",
+    "ext-redis": "*",
+    "ext-swoole": "^6.0",
+    "cycle/annotated": "4.*",
+    "cycle/database": "2.*",
+    "cycle/migrations": "4.*",
+    "cycle/schema-renderer": "1.*",
+    "doctrine/collections": "2.*",
+    "fakerphp/faker": "^1.24",
+    "league/event": "3.*",
+    "monolog/monolog": "3.*",
+    "nyholm/psr7": "1.*",
+    "predis/predis": "2.*",
+    "psr/http-message": "1.*",
+    "psr/log": "3.*",
+    "ramsey/uuid": "4.*",
+    "spiral-packages/league-event": "1.*",
+    "spiral-packages/yii-error-handler-bridge": "^1.1",
+    "spiral/cycle-bridge": "2.*",
+    "spiral/framework": "3.*",
+    "spiral/nyholm-bridge": "1.*",
+    "spiral/validator": "1.*",
+    "swoole/ide-helper": "5.*"
+  },
+  "require-dev": {
+    "roave/security-advisories": "dev-latest",
+    "vimeo/psalm": "5.*",
+    "friendsofphp/php-cs-fixer": "3.*",
+    "phpstan/phpstan": "1.*",
+    "spiral/dumper": "^3.3.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "src/"
+    }
+  },
+  "scripts": {
+    "post-create-project-cmd": [
+      "php bin/configure.php"
+    ],
+    "post-install-cmd": [],
+    "migrate": "php bin/app.php cycle:migrate",
+    "migrate:rollback": "php bin/app.php cycle:migrate:rollback",
+    "events:seed": "php bin/app.php events:seed"
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": {
+      "spiral/composer-publish-plugin": true
+    },
+    "optimize-autoloader": true,
+    "classmap-authoritative": true
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}

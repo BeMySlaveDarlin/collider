@@ -16,33 +16,6 @@ services:
       - composer
       - database
       - redis
-      - rabbitmq
-    networks:
-      - app-network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  queue:
-    container_name: ${APP_NAME}.service.queue
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
-      target: php_${APP_ENV:-dev}
-    restart: unless-stopped
-    env_file:
-      - .env
-    working_dir: /app
-    volumes:
-      - .:/app
-    command: ["rr", "serve", "-c", "docker/roadrunner/.rr.jobs.yaml"]
-    depends_on:
-      - composer
-      - database
-      - redis
-      - rabbitmq
     networks:
       - app-network
     logging:
@@ -129,38 +102,9 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  rabbitmq:
-    container_name: ${APP_NAME}.service.rabbitmq
-    build:
-      context: docker/rabbit-mq
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    env_file:
-      - .env
-    environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
-    volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
-    ports:
-      - 15672:15672
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 30s
-      timeout: 30s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
 volumes:
   database-data:
   redis-data:
-  rabbitmq-data:
 
 networks:
   app-network:

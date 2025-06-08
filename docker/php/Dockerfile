@@ -1,4 +1,3 @@
-FROM ghcr.io/roadrunner-server/roadrunner:2025.1.1 AS roadrunner
 FROM php:8.3-cli AS php_base
 
 ARG APP_PORT=9501
@@ -9,9 +8,6 @@ RUN apt-get update && apt-get install -y \
     libonig-dev libxslt1-dev libicu-dev libpq-dev \
     mc nano make git curl wget unzip \
     && rm -rf /var/lib/apt/lists/*
-
-COPY --from=roadrunner /usr/bin/rr /usr/local/bin/rr
-RUN chmod +x /usr/local/bin/rr
 
 RUN ln -snf /usr/share/zoneinfo/${TIMEZONE} /etc/localtime && echo ${TIMEZONE} > /etc/timezone \
     && printf '[PHP]\ndate.timezone = "%s"\n', ${TIMEZONE} > $PHP_INI_DIR/conf.d/tzone.ini
