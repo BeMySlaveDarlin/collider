@@ -1,0 +1,111 @@
+name: Build and E2E Checks
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Verify tools
+      run: |
+        make --version
+        docker --version
+        docker compose version
+
+    - name: Copy environment file
+      run: cp .env.example .env
+
+    - name: Create var directories
+      run: make var
+
+    - name: Install Composer dependencies
+      run: make composer
+
+    - name: Build and start services
+      run: make start
+
+    - name: Wait for services to be ready
+      run: |
+        echo "Waiting for services to start..."
+        sleep 30
+        docker compose ps
+
+    - name: Run migrations
+      run: docker compose exec -T php php bin/app.php migrate --force
+
+    - name: Refresh caches
+      run: make refresh-caches
+
+    - name: Cleanup
+      if: always()
+      run: make down
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Copy environment file
+      run: cp .env.example .env
+
+    - name: Create var directories
+      run: make var
+
+    - name: Install Composer dependencies
+      run: make composer
+
+    - name: Start services
+      run: make start
+
+    - name: Wait for services to be ready
+      run: |
+        echo "Waiting for services to start..."
+        sleep 30
+        docker compose ps
+
+    - name: Run migrations
+      run: docker compose exec -T php php bin/app.php migrate --force
+
+    - name: Refresh caches
+      run: make refresh-caches
+
+    - name: Install curl and jq
+      run: sudo apt-get update && sudo apt-get install -y curl jq
+
+    - name: Test API endpoints
+      run: |
+        echo "Testing API endpoints..."
+
+        # Test health endpoint
+        curl -f http://localhost/health && echo "✓ Health endpoint works"
+
+        # Test create user
+        curl -s -X POST http://localhost/users \
+          -H "Content-Type: application/json" \
+          && echo "✓ Create event works"
+
+        # Test create event
+        curl -s -X POST http://localhost/events \
+          -H "Content-Type: application/json" \
+          -d "{\"user_id\":1,\"event_type\":\"click\",\"timestamp\":\"2025-06-10T12:00:00Z\",\"metadata\":{\"page\":\"/test\"}}" \
+          && echo "✓ Create event works"
+
+        # Test get events
+        curl -f "http://localhost/events?page=1&limit=10" && echo "✓ Get events works"
+
+        # Test get user events
+        curl -f "http://localhost/users/events?user_id=$USER_ID&limit=10" && echo "✓ Get user events works"
+
+        # Test get total events
+        curl -f "http://localhost/events/total" && echo "✓ Get total events count works"
+
+    - name: Cleanup
+      if: always()
+      run: make down
