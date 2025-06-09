@@ -17,7 +17,7 @@ return [
     'pid_file' => directory('runtime') . 'swoole.pid',
     'enable_static_handler' => (bool)env('SWOOLE_ENABLE_STATIC_HANDLER', true),
     'document_root' => env('SWOOLE_DOCUMENT_ROOT', directory('public')),
-    'static_handler_locations' => ['/'],
+    'static_handler_locations' => ['/assets'],
 
     'coroutine' => [
         'hook_flags' => SWOOLE_HOOK_ALL,

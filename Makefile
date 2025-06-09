@@ -1,8 +1,8 @@
 include .env
 
-.PHONY: all build up down restart logs shell composer help cs-check cs-fix cs-fix-diff psalm psalm-baseline psalm-fix psalm-info
+.PHONY: all build start down restart logs shell composer help cs-check cs-fix cs-fix-diff psalm psalm-baseline psalm-fix psalm-info
 
-all: var composer build up migrate
+all: var composer build start migrate refresh-caches
 
 var:
 	mkdir -p var/cache
@@ -18,16 +18,19 @@ build:
 
 rebuild: down all
 
-up:
+start:
 	docker compose up -d
+
+refresh-caches:
+	docker compose exec php composer dump-autoload --optimize
+	docker compose exec redis redis-cli flushall
 
 down:
 	docker compose down
 	rm -rf var/log/*
 	rm -rf var/cache/*
 
-restart:
-	docker compose restart
+restart: down start refresh-caches
 
 logs:
 	docker compose logs -f
@@ -67,7 +70,7 @@ help:
 	@echo "  all         - Build and start containers"
 	@echo "  build       - Build Docker images"
 	@echo "  rebuild     - Rebuild Docker images"
-	@echo "  up          - Start development environment"
+	@echo "  start       - Start development environment"
 	@echo "  down        - Stop development environment"
 	@echo "  restart     - Restart all services"
 	@echo "  logs        - Show logs"

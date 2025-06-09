@@ -63,7 +63,7 @@ Get paginated list of events sorted by timestamp.
       }
     }
   ],
-  "pagination": {
+  "query": {
     "page": 1,
     "limit": 100,
     "total": 1000
@@ -85,7 +85,9 @@ Delete events before specified date.
 
 ```json
 {
-  "deleted_events": 500
+  "data": {
+    "deleted_events": 0
+  }
 }
 ```
 
@@ -101,8 +103,10 @@ Create a new user with random name.
 
 ```json
 {
-  "id": 123,
-  "name": "John Doe"
+  "data": {
+    "id": 122,
+    "name": "Ms. Pamela Heathcote"
+  }
 }
 ```
 
@@ -121,8 +125,7 @@ Get last events for specific user.
 
 ```json
 {
-  "user_id": 123,
-  "events": [
+  "data": [
     {
       "id": 1,
       "type": "click",
@@ -132,7 +135,11 @@ Get last events for specific user.
       }
     }
   ],
-  "count": 1
+  "query": {
+    "page": 1,
+    "limit": 1000,
+    "total": 1000
+  }
 }
 ```
 
@@ -155,18 +162,27 @@ Get aggregated statistics for events.
 
 ```json
 {
-  "total_events": 1000000,
-  "unique_users": 50000,
-  "top_pages": [
-    {
-      "page": "/home",
-      "count": 100000
-    },
-    {
-      "page": "/about",
-      "count": 50000
+  "data": {
+    "total_events": 2331940,
+    "unique_users": 100,
+    "top_pages": {
+      "/notifications/sent": 106653,
+      "/cart/remove": 106391,
+      "/login": 106253,
+      "/emails/click": 106250,
+      "/registration": 106181,
+      "/order/create": 106168,
+      "/logout": 106141,
+      "/notifications/read": 106139,
+      "/payment/complete": 106042,
+      "/product/view": 106040
     }
-  ]
+  },
+  "query": {
+    "from": "2025-06-01 00:00:00",
+    "to": "2025-06-08 00:00:00",
+    "limit": "10"
+  }
 }
 ```
 

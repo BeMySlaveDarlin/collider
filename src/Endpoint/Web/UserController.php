@@ -33,12 +33,9 @@ final readonly class UserController
                 name: $faker->name()
             );
 
-            $result = $this->createUserUseCase->execute($createUserRequest);
+            $user = $this->createUserUseCase->execute($createUserRequest);
 
-            return $this->response->json([
-                'id' => $result->id,
-                'name' => $result->name,
-            ], 201);
+            return $this->response->json(['data' => $user], 201);
         } catch (Exception $e) {
             return $this->response->json([
                 'error' => 'Failed to create user: ' . $e->getMessage(),
@@ -50,32 +47,29 @@ final readonly class UserController
     public function events(ServerRequestInterface $request): ResponseInterface
     {
         $query = $request->getQueryParams();
-        $userId = (int) $query['user_id'];
-        if (empty($userId)) {
+        if (empty($query['user_id'])) {
             return $this->response->json([
                 'error' => 'User ID cannot be empty',
             ], 400);
         }
 
-        $limit = min(1000, max(1, (int) ($query['limit'] ?? 1000)));
+        $limit = max(1, (int)($query['limit'] ?? 1));
 
         try {
             $userEventsRequest = new GetUserEventsRequest(
-                userId: $userId,
+                userId: (int)$query['user_id'],
                 limit: $limit
             );
 
             $result = $this->getUserEventsUseCase->execute($userEventsRequest);
 
             return $this->response->json([
-                'user_id' => $userId,
-                'events' => array_map(static fn ($event) => [
-                    'id' => $event['id'],
-                    'type' => $event['event_type'],
-                    'timestamp' => $event['timestamp'],
-                    'metadata' => $event['metadata'],
-                ], $result->events),
-                'count' => count($result->events),
+                'data' => $result->events,
+                'query' => [
+                    'page' => 1,
+                    'limit' => $limit,
+                    'total' => count($result->events),
+                ],
             ]);
         } catch (Exception $e) {
             return $this->response->json([

@@ -4,16 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\UserAnalytics\UseCase\Event;
 
-use App\Domain\UserAnalytics\Entity\Event;
-use App\Domain\UserAnalytics\Repository\EventRepository;
+use App\Domain\UserAnalytics\Repository\CachedEventRepository;
 use App\Domain\UserAnalytics\ValueObject\GetEventsRequest;
 use App\Domain\UserAnalytics\ValueObject\GetEventsResponse;
-use Cycle\ORM\ORMInterface;
 
 final readonly class GetEventsUseCase
 {
     public function __construct(
-        private ORMInterface $orm
+        private CachedEventRepository $eventRepository
     ) {
     }
 
@@ -21,17 +19,24 @@ final readonly class GetEventsUseCase
     {
         $offset = ($request->page - 1) * $request->limit;
 
-        /** @var EventRepository $eventRepository */
-        $eventRepository = $this->orm->getRepository(Event::class);
-        $events = $eventRepository->findWithPagination(
+        $events = $this->eventRepository->findWithPagination(
             $request->limit,
             $offset
         );
 
-        $total = $eventRepository->countAll();
+        $total = $this->eventRepository->countAll();
 
         return new GetEventsResponse(
-            events: $events,
+            events: array_map(static function ($event) {
+                $event['metadata'] = json_decode(
+                    $event['metadata'],
+                    true,
+                    512,
+                    JSON_THROW_ON_ERROR
+                );
+
+                return $event;
+            }, $events),
             page: $request->page,
             limit: $request->limit,
             total: $total

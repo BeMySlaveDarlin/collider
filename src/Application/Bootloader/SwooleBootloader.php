@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Application\Bootloader;
 
-use App\Infra\Db\ConnectionPool;
+use App\Infra\Db\ConnectionPool as DbConnectionPool;
 use App\Infra\Db\DbPoolInterface;
+use App\Infra\Redis\ConnectionPool as RedisConnectionPool;
 use App\Infra\Redis\RedisPoolInterface;
 use App\Infra\Swoole\CoroutineHandler;
 use PDO;
@@ -17,7 +18,8 @@ use Spiral\Core\Container;
 final class SwooleBootloader extends Bootloader
 {
     protected const array SINGLETONS = [
-        ConnectionPool::class => ConnectionPool::class,
+        DbConnectionPool::class => DbConnectionPool::class,
+        RedisConnectionPool::class => RedisConnectionPool::class,
         CoroutineHandler::class => CoroutineHandler::class,
     ];
 
@@ -27,7 +29,7 @@ final class SwooleBootloader extends Bootloader
             $config = $container->get(ConfiguratorInterface::class)->getConfig('database');
             $dbConfig = $config['databases']['default'] ?? [];
 
-            return new ConnectionPool('database', function () use ($dbConfig) {
+            return new DbConnectionPool('database', function () use ($dbConfig) {
                 $dsn = sprintf(
                     '%s:host=%s;port=%s;dbname=%s',
                     $dbConfig['driver'] ?? 'pgsql',
@@ -52,7 +54,7 @@ final class SwooleBootloader extends Bootloader
             $config = $container->get(ConfiguratorInterface::class)->getConfig('cache');
             $redisConfig = $config['stores']['redis'] ?? [];
 
-            return new ConnectionPool('redis', function () use ($redisConfig) {
+            return new RedisConnectionPool('redis', function () use ($redisConfig) {
                 $redis = new Redis();
                 $redis->connect(
                     $redisConfig['host'] ?? 'localhost',

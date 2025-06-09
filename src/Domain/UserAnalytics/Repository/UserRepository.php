@@ -13,4 +13,9 @@ class UserRepository extends Repository
     {
         return $this->findByPK($id);
     }
+
+    public function findByName(string $name): ?User
+    {
+        return $this->findOne(['name' => $name]);
+    }
 }

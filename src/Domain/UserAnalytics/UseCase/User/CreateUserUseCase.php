@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Domain\UserAnalytics\UseCase\User;
 
 use App\Domain\UserAnalytics\Entity\User;
+use App\Domain\UserAnalytics\Repository\CachedUserRepository;
 use App\Domain\UserAnalytics\ValueObject\CreateUserRequest;
 use App\Domain\UserAnalytics\ValueObject\CreateUserResponse;
-use Cycle\ORM\EntityManagerInterface;
 
 final readonly class CreateUserUseCase
 {
     public function __construct(
-        private EntityManagerInterface $entityManager
+        private CachedUserRepository $userRepository
     ) {
     }
 
@@ -21,8 +21,7 @@ final readonly class CreateUserUseCase
         $user = new User();
         $user->name = $request->name;
 
-        $this->entityManager->persist($user);
-        $this->entityManager->run();
+        $this->userRepository->save($user);
 
         return new CreateUserResponse(
             id: $user->id,

@@ -13,6 +13,8 @@ use Spiral\Domain\GuardInterceptor;
 use Spiral\Interceptors\HandlerInterface;
 use Swoole\Runtime;
 
+use function extension_loaded;
+
 final class AppBootloader extends DomainBootloader
 {
     protected const array SINGLETONS = [HandlerInterface::class => [self::class, 'domainCore']];
@@ -39,7 +41,7 @@ final class AppBootloader extends DomainBootloader
      */
     public function init(Container $container, EnvironmentInterface $env): void
     {
-        if (!\extension_loaded('swoole')) {
+        if (!extension_loaded('swoole')) {
             throw new ErrorException('Swoole extension is required but not loaded');
         }
 

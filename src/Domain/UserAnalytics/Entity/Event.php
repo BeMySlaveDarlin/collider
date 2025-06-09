@@ -10,6 +10,7 @@ use Cycle\Annotated\Annotation\Entity;
 use Cycle\Annotated\Annotation\Relation\BelongsTo;
 use Cycle\Annotated\Annotation\Table\Index;
 use DateTimeInterface;
+use JsonSerializable;
 
 #[Entity(repository: EventRepository::class, table: 'events')]
 #[Index(columns: ['user_id'], name: 'idx_events_user_id')]
@@ -17,7 +18,7 @@ use DateTimeInterface;
 #[Index(columns: ['timestamp'], name: 'idx_events_timestamp')]
 #[Index(columns: ['user_id', 'timestamp'], name: 'idx_events_user_time')]
 #[Index(columns: ['type_id', 'timestamp'], name: 'idx_events_type_time')]
-class Event
+class Event implements JsonSerializable
 {
     #[Column(type: 'bigInteger', primary: true, autoIncrement: true)]
     public int $id;
@@ -39,4 +40,15 @@ class Event
 
     #[BelongsTo(target: EventType::class)]
     public ?EventType $type = null;
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'id' => $this->id,
+            'user_id' => $this->user_id,
+            'type' => $this->type->name,
+            'timestamp' => $this->timestamp->format('c'),
+            'metadata' => json_decode($this->metadata, true, 512, JSON_THROW_ON_ERROR),
+        ];
+    }
 }

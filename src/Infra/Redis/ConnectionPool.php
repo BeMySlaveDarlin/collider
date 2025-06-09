@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Infra\Db;
+namespace App\Infra\Redis;
 
-use PDO;
+use Redis;
 use Swoole\ConnectionPool as SwooleConnectionPool;
 
-final class ConnectionPool implements DbPoolInterface
+final class ConnectionPool implements RedisPoolInterface
 {
     private SwooleConnectionPool $pool;
     private array $config;
@@ -26,14 +26,14 @@ final class ConnectionPool implements DbPoolInterface
         ];
     }
 
-    public function get(): PDO
+    public function get(): Redis
     {
         $this->freeConnections--;
 
         return $this->pool->get();
     }
 
-    public function put(PDO $connection): void
+    public function put(Redis $connection): void
     {
         $this->freeConnections++;
         $this->pool->put($connection);

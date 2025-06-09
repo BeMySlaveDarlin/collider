@@ -27,41 +27,22 @@ final readonly class StatsController
         $query = $request->getQueryParams();
 
         try {
-            $from = null;
-            $to = null;
-            $limit = 3;
-
-            if (isset($query['from'])) {
-                $from = new DateTimeImmutable($query['from']);
-            }
-
-            if (isset($query['to'])) {
-                $to = new DateTimeImmutable($query['to']);
-            }
-
-            if (isset($query['limit'])) {
-                $limit = (int) $query['limit'];
-            }
-
-            if ($from && $to && $from > $to) {
-                return $this->response->json([
-                    'error' => 'Invalid date range: "from" date cannot be later than "to" date',
-                ], 400);
-            }
-
             $statsRequest = new GetStatsRequest(
-                limit: $limit,
-                from: $from,
-                to: $to,
+                limit: isset($query['limit']) ? (int)$query['limit'] : null,
+                from: isset($query['from']) ? new DateTimeImmutable($query['from']) : null,
+                to: isset($query['to']) ? new DateTimeImmutable($query['to']) : null,
                 type: $query['type'] ?? null
             );
 
             $stats = $this->getStatsUseCase->execute($statsRequest);
 
             return $this->response->json([
-                'total_events' => $stats->totalEvents,
-                'unique_users' => $stats->uniqueUsers,
-                'top_pages' => $stats->topPages,
+                'data' => [
+                    'total_events' => $stats->totalEvents,
+                    'unique_users' => $stats->uniqueUsers,
+                    'top_pages' => $stats->topPages,
+                ],
+                'query' => $query,
             ]);
         } catch (Exception $e) {
             return $this->response->json([

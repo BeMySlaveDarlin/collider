@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\UserAnalytics\Task;
 
+use App\Domain\UserAnalytics\Repository\CachedEventRepository;
 use Cycle\Database\DatabaseInterface;
 
 readonly class DeleteOldEventsTask implements TaskInterface
 {
     public function __construct(
-        private DatabaseInterface $database
+        private DatabaseInterface $database,
+        private CachedEventRepository $repository,
     ) {
     }
 
@@ -23,6 +25,7 @@ readonly class DeleteOldEventsTask implements TaskInterface
         $deleteSql = 'DELETE FROM events WHERE timestamp < ?';
 
         $deleted = $this->database->execute($deleteSql, [$before]);
+        $this->repository->invalidateCache();
 
         echo "[Task] Deleted $deleted old events\n";
     }

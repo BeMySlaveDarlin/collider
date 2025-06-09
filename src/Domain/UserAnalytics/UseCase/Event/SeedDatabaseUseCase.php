@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\UserAnalytics\UseCase\Event;
 
 use App\Domain\UserAnalytics\Policy\SeedPolicy;
+use App\Domain\UserAnalytics\Repository\CachedEventRepository;
 use Cycle\Database\DatabaseInterface;
 use Faker\Factory;
 use Faker\Generator;
@@ -15,6 +16,7 @@ final readonly class SeedDatabaseUseCase
     private Generator $faker;
 
     public function __construct(
+        private CachedEventRepository $eventRepository,
         private DatabaseInterface $database,
         private SeedPolicy $seedPolicy
     ) {
@@ -30,6 +32,7 @@ final readonly class SeedDatabaseUseCase
         $this->seedUsers($logger);
         $this->seedEventTypes($logger);
         $this->seedEvents($logger);
+        $this->eventRepository->invalidateCache();
 
         $endTime = microtime(true);
         $endMemory = memory_get_usage(true);
