@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Domain\UserAnalytics\Repository;
 
+use App\Domain\UserAnalytics\ValueObject\CreateEventsRequest;
 use Cycle\Database\DatabaseInterface;
 use Cycle\Database\StatementInterface;
 use Cycle\ORM\RepositoryInterface;
 use DateTimeInterface;
+use DomainException;
+use PDO;
 
 readonly class EventRepository implements RepositoryInterface
 {
@@ -133,7 +136,7 @@ readonly class EventRepository implements RepositoryInterface
     public function countAll(): int
     {
         $result = $this->database
-            ->query('SELECT COUNT(*) as total FROM events')
+            ->query('SELECT COUNT(id) as total FROM events')
             ->fetch();
 
         return (int)($result['total'] ?? 0);
@@ -224,5 +227,45 @@ readonly class EventRepository implements RepositoryInterface
         ";
 
         return $this->database->query($sql, $parameters)->fetchAll();
+    }
+
+    public function insertBatch(CreateEventsRequest $events): int
+    {
+        $eventTypeIdMap = $this->database
+            ->select(['name', 'id'])
+            ->from('event_types')
+            ->fetchAll(PDO::FETCH_KEY_PAIR);
+
+        $userIds = $this->database
+            ->select(['id'])
+            ->from('users')
+            ->fetchAll(PDO::FETCH_COLUMN);
+
+        $placeholders = [];
+        $values = [];
+
+        foreach ($events->events as $event) {
+            if (!isset($userIds[$event->userId])) {
+                throw new DomainException("Unknown user_id: {$event->userId}");
+            }
+            if (!isset($eventTypeIdMap[$event->eventType])) {
+                throw new DomainException("Unknown event_type: {$event->eventType}");
+            }
+
+            $placeholders[] = "(?, ?, ?, ?)";
+            array_push(
+                $values,
+                $event->userId,
+                $eventTypeIdMap[$event->eventType],
+                $event->timestamp->format('Y-m-d H:i:s'),
+                json_encode($event->metadata, JSON_THROW_ON_ERROR)
+            );
+        }
+
+        $sql = 'INSERT INTO events (user_id, type_id, timestamp, metadata) VALUES ' . implode(',', $placeholders);
+        $this->database->getDriver()->query($sql, $values);
+        unset($sql, $values, $placeholders, $eventTypeIdMap);
+
+        return count($events->events);
     }
 }

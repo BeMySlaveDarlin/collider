@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Endpoint\Web;
 
+use App\Domain\UserAnalytics\UseCase\Event\CreateEventsUseCase;
 use App\Domain\UserAnalytics\UseCase\Event\CreateEventUseCase;
 use App\Domain\UserAnalytics\UseCase\Event\DeleteEventsUseCase;
+use App\Domain\UserAnalytics\UseCase\Event\EventsTotalCountUseCase;
 use App\Domain\UserAnalytics\UseCase\Event\GetEventsUseCase;
 use App\Domain\UserAnalytics\ValueObject\CreateEventRequest;
+use App\Domain\UserAnalytics\ValueObject\CreateEventsRequest;
 use App\Domain\UserAnalytics\ValueObject\DeleteEventsRequest;
 use App\Domain\UserAnalytics\ValueObject\GetEventsRequest;
 use DateTimeImmutable;
@@ -22,12 +25,14 @@ final readonly class EventController
     public function __construct(
         private ResponseWrapper $response,
         private CreateEventUseCase $createEventUseCase,
+        private CreateEventsUseCase $createEventsUseCase,
         private GetEventsUseCase $getEventsUseCase,
+        private EventsTotalCountUseCase $totalEventsUseCase,
         private DeleteEventsUseCase $deleteEventsUseCase
     ) {
     }
 
-    #[Route(route: '/events', name: 'event.create', methods: ['POST'])]
+    #[Route(route: '/event', name: 'event.create', methods: ['POST'])]
     public function create(ServerRequestInterface $request): ResponseInterface
     {
         $data = $request->getParsedBody();
@@ -48,6 +53,29 @@ final readonly class EventController
             $event = $this->createEventUseCase->execute($createRequest);
 
             return $this->response->json(['data' => $event], 201);
+        } catch (Exception $e) {
+            return $this->response->json([
+                'error' => 'Invalid request data: ' . $e->getMessage(),
+            ], 400);
+        }
+    }
+
+    #[Route(route: '/events', name: 'events.create.batch', methods: ['POST'])]
+    public function createBatch(ServerRequestInterface $request): ResponseInterface
+    {
+        $data = $request->getParsedBody();
+        if (empty($data) || !is_array($data)) {
+            return $this->response->json([
+                'error' => 'Missing required fields: events',
+            ], 400);
+        }
+
+        try {
+            $createRequest = new CreateEventsRequest($data);
+
+            $result = $this->createEventsUseCase->execute($createRequest);
+
+            return $this->response->json(['data' => $result ? 'queued' : 'failed to queue'], 201);
         } catch (Exception $e) {
             return $this->response->json([
                 'error' => 'Invalid request data: ' . $e->getMessage(),
@@ -82,6 +110,22 @@ final readonly class EventController
         } catch (Exception $e) {
             return $this->response->json([
                 'error' => 'Failed to retrieve events: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    #[Route(route: '/events/total', name: 'events.total', methods: ['GET'])]
+    public function total(): ResponseInterface
+    {
+        try {
+            $result = $this->totalEventsUseCase->execute();
+
+            return $this->response->json([
+                'data' => $result->total,
+            ]);
+        } catch (Exception $e) {
+            return $this->response->json([
+                'error' => 'Failed to retrieve events count: ' . $e->getMessage(),
             ], 500);
         }
     }

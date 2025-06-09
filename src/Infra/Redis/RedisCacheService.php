@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Infra\Redis;
 
-use Psr\Log\LoggerInterface;
 use Redis;
 
 final readonly class RedisCacheService
 {
     public function __construct(
-        private LoggerInterface $logger,
         private RedisPoolInterface $redisPool,
         private string $prefix = 'cache:'
     ) {
@@ -57,12 +55,11 @@ final readonly class RedisCacheService
         $redis = $this->redisPool->get();
         try {
             $keys = $redis->keys($this->prefix . $pattern);
-            $prefixedKeys = array_map(fn($key) => $this->prefix . $key, $keys);
-            if (empty($prefixedKeys)) {
+            if (empty($keys)) {
                 return true;
             }
 
-            return $redis->del($prefixedKeys);
+            return $redis->del($keys);
         } finally {
             $this->redisPool->put($redis);
         }

@@ -4,7 +4,7 @@
 
 ### Create Event
 
-**POST** `/events`
+**POST** `/event`
 
 Create a new user event.
 
@@ -37,6 +37,51 @@ Create a new user event.
 }
 ```
 
+### Batch Create Events
+
+**POST** `/events`
+
+Create multiple events.
+
+**Request Body:**
+
+```json
+[
+  {
+    "user_id": 8,
+    "event_type": "page_view",
+    "timestamp": "2025-06-08T10:30:00Z",
+    "metadata": {
+      "page": "/dashboard",
+      "referrer": "https://google.com"
+    }
+  },
+  {
+    "user_id": 9,
+    "event_type": "page_view",
+    "timestamp": "2025-06-08T10:30:00Z",
+    "metadata": {
+      "page": "/main",
+      "referrer": "https://ya.ru"
+    }
+  }
+]
+```
+
+**Response (201):**
+
+```json
+{
+  "data": "queued"
+}
+```
+
+```json
+{
+  "data": "failed to queue"
+}
+```
+
 ### List Events
 
 **GET** `/events?page=1&limit=100`
@@ -47,6 +92,35 @@ Get paginated list of events sorted by timestamp.
 
 - `page` (int, default: 1) - Page number
 - `limit` (int, default: 100, max: 1000) - Items per page
+
+**Response (200):**
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "user_id": "123",
+      "type": "click",
+      "timestamp": "2025-05-28T12:34:56+00:00",
+      "metadata": {
+        "page": "/home"
+      }
+    }
+  ],
+  "query": {
+    "page": 1,
+    "limit": 100,
+    "total": 1000
+  }
+}
+```
+
+### Total Events Count
+
+**GET** `/events/total`
+
+Get total count of events.
 
 **Response (200):**
 
@@ -183,6 +257,20 @@ Get aggregated statistics for events.
     "to": "2025-06-08 00:00:00",
     "limit": "10"
   }
+}
+```
+
+### Clear cache
+
+**GET** `/clear_cache`
+
+Clears caches
+
+**Response (200):**
+
+```json
+{
+  "data": "Ok"
 }
 ```
 

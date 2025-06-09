@@ -31,7 +31,7 @@ final class Server
         $this->swooleConfig = $this->config->getConfig('swoole');
         $this->server = new HttpServer(
             $this->swooleConfig['host'] ?? '0.0.0.0',
-            (int) ($this->swooleConfig['port'] ?? 9501),
+            (int)($this->swooleConfig['port'] ?? 9501),
             SWOOLE_PROCESS,
             SWOOLE_SOCK_TCP
         );
@@ -130,15 +130,19 @@ final class Server
 
     public function onTask(HttpServer $server, int $taskId, int $srcWorkerId, mixed $data): bool
     {
-        echo "Task #{$taskId} received from Worker #{$srcWorkerId}\n";
+        try {
+            echo "Task #{$taskId} received from Worker #{$srcWorkerId}\n";
 
-        $taskClass = $data['taskClass'] ?? null;
-        if ($taskClass === null) {
+            $taskClass = $data['taskClass'] ?? null;
+            if ($taskClass === null) {
+                return false;
+            }
+
+            $task = $this->container->get($taskClass);
+            $task->run($data);
+        } catch (Throwable $e) {
             return false;
         }
-
-        $task = $this->container->get($taskClass);
-        $task->run($data);
 
         return true;
     }
@@ -167,7 +171,7 @@ final class Server
     {
         return $this->container->get(ScopeInterface::class)->runScope(
             ['request' => $request],
-            fn () => $this->container->get(Http::class)->handle($request)
+            fn() => $this->container->get(Http::class)->handle($request)
         );
     }
 
