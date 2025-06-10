@@ -13,9 +13,11 @@ use Spiral\Boot\EnvironmentInterface;
 use Spiral\Config\ConfiguratorInterface;
 use Spiral\Core\ScopeInterface;
 use Spiral\Http\Http;
+use Swoole\Coroutine;
 use Swoole\Http\Request;
 use Swoole\Http\Response;
 use Swoole\Http\Server as HttpServer;
+use Swoole\Server\Task;
 use Throwable;
 
 final class Server
@@ -73,6 +75,7 @@ final class Server
             'task_worker_num' => $this->swooleConfig['task_worker_num'] ?? 4,
             'max_request' => $this->swooleConfig['max_request'] ?? 10000,
             'enable_coroutine' => true,
+            'task_enable_coroutine' => true,
             'hook_flags' => SWOOLE_HOOK_ALL,
             'max_coroutine' => $this->swooleConfig['max_coroutine'] ?? 10000,
             'package_max_length' => $this->swooleConfig['package_max_length'] ?? 2 * 1024 * 1024,
@@ -128,23 +131,28 @@ final class Server
         $this->server->task($data);
     }
 
-    public function onTask(HttpServer $server, int $taskId, int $srcWorkerId, mixed $data): bool
+    public function onTask(HttpServer $server, Task $task): bool
     {
         try {
-            echo "Task #{$taskId} received from Worker #{$srcWorkerId}\n";
+            echo "Task #{$task->id} received from Worker #{$task->worker_id}\n";
 
-            $taskClass = $data['taskClass'] ?? null;
-            if ($taskClass === null) {
+            if (empty($task->data['taskHandlerClass'])) {
                 return false;
             }
 
-            $task = $this->container->get($taskClass);
-            $task->run($data);
+            Coroutine::create(function () use ($task) {
+                $taskHhandler = $this->container->get($task->data['taskHandlerClass']);
+                $taskHhandler->run($task->data);
+            });
+
+            echo "Task #{$task->id} succeed\n";
+
+            return true;
         } catch (Throwable $e) {
+            echo "Task #{$task->id} failed with error {$e->getMessage()}\n";
+
             return false;
         }
-
-        return true;
     }
 
     public function onFinish(HttpServer $server, int $taskId, mixed $data): void

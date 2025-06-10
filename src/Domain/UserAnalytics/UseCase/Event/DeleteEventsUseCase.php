@@ -22,7 +22,7 @@ final readonly class DeleteEventsUseCase
         $count = $this->eventRepository->findBeforeDate($request->before);
 
         $this->server->dispatchTask([
-            'taskClass' => DeleteOldEventsTask::class,
+            'taskHandlerClass' => DeleteOldEventsTask::class,
             'before' => $request->before->format('Y-m-d H:i:s'),
         ]);
 

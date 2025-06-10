@@ -18,7 +18,7 @@ final readonly class CreateEventsUseCase
     public function execute(CreateEventsRequest $request): bool
     {
         $this->server->dispatchTask([
-            'taskClass' => BatchCreateEventsTask::class,
+            'taskHandlerClass' => BatchCreateEventsTask::class,
             'events' => $request,
         ]);
 
