@@ -223,7 +223,7 @@ final class Handler implements ExceptionHandlerInterface
             'file' => $exception->getFile(),
             'line' => $exception->getLine(),
             'request_method' => $request->getMethod(),
-            'request_uri' => (string)$request->getUri(),
+            'request_uri' => (string) $request->getUri(),
             'user_agent' => $request->getHeaderLine('User-Agent'),
         ];
 
@@ -259,7 +259,7 @@ final class Handler implements ExceptionHandlerInterface
             $statusCode,
             [
                 'Content-Type' => 'application/json',
-                'Content-Length' => (string)strlen($json),
+                'Content-Length' => (string) strlen($json),
             ],
             $json
         );

@@ -56,10 +56,10 @@ final readonly class UserController
                 ], 400);
             }
 
-            $limit = max(1, (int)($query['limit'] ?? 1));
+            $limit = max(1, (int) ($query['limit'] ?? 1));
 
             $userEventsRequest = new GetUserEventsRequest(
-                userId: (int)$query['user_id'],
+                userId: (int) $query['user_id'],
                 limit: $limit
             );
 

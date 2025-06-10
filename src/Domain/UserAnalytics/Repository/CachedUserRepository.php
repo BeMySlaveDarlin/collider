@@ -25,7 +25,7 @@ final class CachedUserRepository
     {
         return $this->cache->remember(
             "user:id:{$id}",
-            fn() => $this->repository->findById($id),
+            fn () => $this->repository->findById($id),
             self::DEFAULT_TTL,
             [$this, 'userFromArray']
         );
@@ -35,7 +35,7 @@ final class CachedUserRepository
     {
         return $this->cache->remember(
             "user:name:{$name}",
-            fn() => $this->repository->findByName($name),
+            fn () => $this->repository->findByName($name),
             self::DEFAULT_TTL,
             [$this, 'userFromArray']
         );

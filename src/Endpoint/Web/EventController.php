@@ -93,8 +93,8 @@ final readonly class EventController
         try {
             $query = $request->getQueryParams();
 
-            $page = max(1, (int)($query['page'] ?? 1));
-            $limit = max(1, (int)($query['limit'] ?? 1));
+            $page = max(1, (int) ($query['page'] ?? 1));
+            $limit = max(1, (int) ($query['limit'] ?? 1));
 
             $getRequest = new GetEventsRequest(
                 page: $page,

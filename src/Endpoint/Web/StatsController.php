@@ -27,7 +27,7 @@ final readonly class StatsController
         try {
             $query = $request->getQueryParams();
             $statsRequest = new GetStatsRequest(
-                limit: isset($query['limit']) ? (int)$query['limit'] : null,
+                limit: isset($query['limit']) ? (int) $query['limit'] : null,
                 from: isset($query['from']) ? new DateTimeImmutable($query['from']) : null,
                 to: isset($query['to']) ? new DateTimeImmutable($query['to']) : null,
                 type: $query['type'] ?? null

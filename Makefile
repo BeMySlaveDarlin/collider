@@ -45,7 +45,7 @@ seed:
 	docker-compose exec php php bin/app.php events:seed
 
 cs-check:
-	docker compose exec php php-cs-fixer fix --dry-run --diff
+	docker compose exec php php-cs-fixer fix --dry-run
 
 cs-fix:
 	docker compose exec php php-cs-fixer fix

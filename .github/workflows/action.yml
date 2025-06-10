@@ -7,6 +7,22 @@ on:
     branches: [ main, master ]
 
 jobs:
+  cs-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+
+    - name: Install Dependencies
+      run: composer install --no-interaction --prefer-dist --ignore-platform-reqs
+
+    - name: Run PHP CS Fixer
+      run: vendor/bin/php-cs-fixer fix --dry-run
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -33,14 +49,8 @@ jobs:
     - name: Wait for services to be ready
       run: |
         echo "Waiting for services to start..."
-        sleep 30
+        sleep 5
         docker compose ps
-
-    - name: Run migrations
-      run: docker compose exec -T php php bin/app.php migrate --force
-
-    - name: Refresh caches
-      run: make refresh-caches
 
     - name: Cleanup
       if: always()
@@ -48,7 +58,6 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    needs: build
     steps:
     - uses: actions/checkout@v4
 
@@ -67,14 +76,11 @@ jobs:
     - name: Wait for services to be ready
       run: |
         echo "Waiting for services to start..."
-        sleep 30
+        sleep 5
         docker compose ps
 
     - name: Run migrations
       run: docker compose exec -T php php bin/app.php migrate --force
-
-    - name: Refresh caches
-      run: make refresh-caches
 
     - name: Install curl and jq
       run: sudo apt-get update && sudo apt-get install -y curl jq

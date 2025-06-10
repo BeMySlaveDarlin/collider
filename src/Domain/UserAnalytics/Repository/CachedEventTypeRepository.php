@@ -25,7 +25,7 @@ final class CachedEventTypeRepository
     {
         return $this->cache->remember(
             "event_type:id:{$id}",
-            fn() => $this->repository->findById($id),
+            fn () => $this->repository->findById($id),
             self::DEFAULT_TTL,
             [$this, 'typeFromArray']
         );
@@ -35,7 +35,7 @@ final class CachedEventTypeRepository
     {
         return $this->cache->remember(
             "event_type:name:{$name}",
-            fn() => $this->repository->findByName($name),
+            fn () => $this->repository->findByName($name),
             self::DEFAULT_TTL,
             [$this, 'typeFromArray']
         );

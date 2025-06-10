@@ -30,7 +30,7 @@ final class HttpRequestMiddleware implements MiddlewareInterface
 
         $metrics->collect();
 
-        $body = (string)$response->getBody();
+        $body = (string) $response->getBody();
         $json = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
 
         $this->getLogger()->info(

@@ -111,7 +111,7 @@ final readonly class RedisCacheService
     {
         $redis = $this->redisPool->get();
         try {
-            $prefixedKeys = array_map(fn($key) => $this->prefix . $key, $keys);
+            $prefixedKeys = array_map(fn ($key) => $this->prefix . $key, $keys);
             $values = $redis->mget($prefixedKeys);
 
             $result = [];

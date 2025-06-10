@@ -24,7 +24,7 @@ final class CachedEventRepository
     {
         return $this->cache->remember(
             "events:uid:{$uid}",
-            fn() => $this->repository->findByUserId($uid, $limit),
+            fn () => $this->repository->findByUserId($uid, $limit),
             self::DEFAULT_TTL
         );
     }
@@ -33,7 +33,7 @@ final class CachedEventRepository
     {
         return $this->cache->remember(
             "events:page:{$limit}:{$offset}",
-            fn() => $this->repository->findWithPagination($limit, $offset),
+            fn () => $this->repository->findWithPagination($limit, $offset),
             self::DEFAULT_TTL
         );
     }
@@ -42,7 +42,7 @@ final class CachedEventRepository
     {
         return $this->cache->remember(
             "events:before:{$date->getTimestamp()}",
-            fn() => $this->repository->findBeforeDate($date),
+            fn () => $this->repository->findBeforeDate($date),
             self::DEFAULT_TTL
         );
     }
@@ -57,7 +57,7 @@ final class CachedEventRepository
 
         return $this->cache->remember(
             "events:stats:{$suffix}",
-            fn() => $this->repository->getStats($limit, $from, $to, $eventTypeId),
+            fn () => $this->repository->getStats($limit, $from, $to, $eventTypeId),
             self::DEFAULT_TTL
         );
     }
@@ -65,8 +65,8 @@ final class CachedEventRepository
     public function countAll(): int
     {
         return $this->cache->remember(
-            "events:count:all",
-            fn() => $this->repository->countAll(),
+            'events:count:all',
+            fn () => $this->repository->countAll(),
             self::DEFAULT_TTL
         );
     }
@@ -91,6 +91,6 @@ final class CachedEventRepository
 
     public function invalidateCache(): void
     {
-        $this->cache->deleteBatch("events:*");
+        $this->cache->deleteBatch('events:*');
     }
 }

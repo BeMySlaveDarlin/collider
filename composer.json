@@ -1,5 +1,5 @@
 {
-  "name": "app/analytics",
+  "name": "bemyslavedarlin/collider",
   "type": "project",
   "description": "RESTful API on Spiral Framework with Swoole",
   "require": {
