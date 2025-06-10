@@ -60,7 +60,7 @@ readonly class EventRepository implements RepositoryInterface
     {
         $sql = 'SELECT COUNT(*) as total FROM events WHERE timestamp <= ?';
 
-        return (int) $this->database->query($sql, [$date->format('Y-m-d H:i:s')])->fetch()['total'];
+        return (int)$this->database->query($sql, [$date->format('Y-m-d H:i:s')])->fetch()['total'];
     }
 
     public function getStats(
@@ -89,46 +89,40 @@ readonly class EventRepository implements RepositoryInterface
 
         $whereClause = empty($whereConditions) ? ' e.id > 0' : implode(' AND ', $whereConditions);
 
-        $totalEventsSql = "
-            SELECT COUNT(*) as total_events
-            FROM events e
-            WHERE {$whereClause}
-        ";
-
-        $totalEventsResult = $this->database->query($totalEventsSql, $parameters)->fetch();
-        $totalEvents = (int) $totalEventsResult['total_events'];
-
-        $uniqueUsersSql = "
-            SELECT COUNT(DISTINCT e.user_id) as unique_users
-            FROM events e
-            WHERE {$whereClause}
-        ";
-
-        $uniqueUsersResult = $this->database->query($uniqueUsersSql, $parameters)->fetch();
-        $uniqueUsers = (int) $uniqueUsersResult['unique_users'];
-
-        $topPagesSql = "
+        $sql = "
             SELECT
+                e.user_id,
                 e.metadata->>'page' as page,
                 COUNT(*) as page_count
             FROM events e
             WHERE {$whereClause}
-            GROUP BY e.metadata->>'page'
-            ORDER BY page_count DESC
-            LIMIT $limit
+            GROUP BY e.user_id, page
         ";
 
-        $topPagesResult = $this->database->query($topPagesSql, $parameters)->fetchAll();
+        $topPagesResult = $this->database->query($sql, $parameters)->fetchAll();
 
+        $users = [];
+        $totalEvents = 0;
         $topPages = [];
         foreach ($topPagesResult as $row) {
-            $page = trim($row['page'], '"') ?: 'unknown';
-            $topPages[$page] = (int) $row['page_count'];
+            $pageCount = (int)$row['page_count'];
+            $totalEvents += $pageCount;
+            $users[$row['user_id']] = 1;
+
+            if (!isset($topPages[$row['page']])) {
+                $topPages[$row['page']] = 0;
+            }
+            $topPages[$row['page']] += $pageCount;
         }
+        $uniqueUsersCount = count($users);
+        arsort($topPages);
+        $topPages = array_slice($topPages, 0, $limit, true);
+
+        unset($topPagesResult, $users);
 
         return [
             'total_events' => $totalEvents,
-            'unique_users' => $uniqueUsers,
+            'unique_users' => $uniqueUsersCount,
             'top_pages' => $topPages,
         ];
     }
@@ -139,7 +133,7 @@ readonly class EventRepository implements RepositoryInterface
             ->query('SELECT COUNT(id) as total FROM events')
             ->fetch();
 
-        return (int) ($result['total'] ?? 0);
+        return (int)($result['total'] ?? 0);
     }
 
     public function findByPK(mixed $id): ?object
