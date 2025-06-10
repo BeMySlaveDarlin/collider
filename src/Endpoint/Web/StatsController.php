@@ -24,9 +24,8 @@ final readonly class StatsController
     #[Route(route: '/stats', name: 'stats', methods: ['GET'])]
     public function index(ServerRequestInterface $request): ResponseInterface
     {
-        $query = $request->getQueryParams();
-
         try {
+            $query = $request->getQueryParams();
             $statsRequest = new GetStatsRequest(
                 limit: isset($query['limit']) ? (int)$query['limit'] : null,
                 from: isset($query['from']) ? new DateTimeImmutable($query['from']) : null,

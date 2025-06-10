@@ -35,14 +35,14 @@ final readonly class EventController
     #[Route(route: '/event', name: 'event.create', methods: ['POST'])]
     public function create(ServerRequestInterface $request): ResponseInterface
     {
-        $data = $request->getParsedBody();
-        if (!isset($data['user_id'], $data['event_type'], $data['timestamp'])) {
-            return $this->response->json([
-                'error' => 'Missing required fields: user_id, event_type, timestamp',
-            ], 400);
-        }
-
         try {
+            $data = $request->getParsedBody();
+            if (!isset($data['user_id'], $data['event_type'], $data['timestamp'])) {
+                return $this->response->json([
+                    'error' => 'Missing required fields: user_id, event_type, timestamp',
+                ], 400);
+            }
+
             $createRequest = new CreateEventRequest(
                 userId: $data['user_id'],
                 eventType: $data['event_type'],
@@ -52,7 +52,9 @@ final readonly class EventController
 
             $event = $this->createEventUseCase->execute($createRequest);
 
-            return $this->response->json(['data' => $event], 201);
+            return $this->response->json([
+                'data' => $event,
+            ], 201);
         } catch (Exception $e) {
             return $this->response->json([
                 'error' => 'Invalid request data: ' . $e->getMessage(),
@@ -63,19 +65,21 @@ final readonly class EventController
     #[Route(route: '/events', name: 'events.create.batch', methods: ['POST'])]
     public function createBatch(ServerRequestInterface $request): ResponseInterface
     {
-        $data = $request->getParsedBody();
-        if (empty($data) || !is_array($data)) {
-            return $this->response->json([
-                'error' => 'Missing required fields: events',
-            ], 400);
-        }
-
         try {
+            $data = $request->getParsedBody();
+            if (empty($data) || !is_array($data)) {
+                return $this->response->json([
+                    'error' => 'Missing required fields: events',
+                ], 400);
+            }
+
             $createRequest = new CreateEventsRequest($data);
 
             $result = $this->createEventsUseCase->execute($createRequest);
 
-            return $this->response->json(['data' => $result ? 'queued' : 'failed to queue'], 201);
+            return $this->response->json([
+                'data' => $result ? 'queued' : 'failed to queue',
+            ], 201);
         } catch (Exception $e) {
             return $this->response->json([
                 'error' => 'Invalid request data: ' . $e->getMessage(),
@@ -86,17 +90,17 @@ final readonly class EventController
     #[Route(route: '/events', name: 'events.list', methods: ['GET'])]
     public function list(ServerRequestInterface $request): ResponseInterface
     {
-        $query = $request->getQueryParams();
-
-        $page = max(1, (int)($query['page'] ?? 1));
-        $limit = max(1, (int)($query['limit'] ?? 1));
-
-        $getRequest = new GetEventsRequest(
-            page: $page,
-            limit: $limit
-        );
-
         try {
+            $query = $request->getQueryParams();
+
+            $page = max(1, (int)($query['page'] ?? 1));
+            $limit = max(1, (int)($query['limit'] ?? 1));
+
+            $getRequest = new GetEventsRequest(
+                page: $page,
+                limit: $limit
+            );
+
             $result = $this->getEventsUseCase->execute($getRequest);
 
             return $this->response->json([
@@ -133,15 +137,14 @@ final readonly class EventController
     #[Route(route: '/events', name: 'event.delete', methods: ['DELETE'])]
     public function delete(ServerRequestInterface $request): ResponseInterface
     {
-        $query = $request->getQueryParams();
-
-        if (!isset($query['before'])) {
-            return $this->response->json([
-                'error' => 'Parameter "before" is required',
-            ], 400);
-        }
-
         try {
+            $query = $request->getQueryParams();
+            if (!isset($query['before'])) {
+                return $this->response->json([
+                    'error' => 'Parameter "before" is required',
+                ], 400);
+            }
+
             $deleteRequest = new DeleteEventsRequest(
                 before: new DateTimeImmutable($query['before'])
             );

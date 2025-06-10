@@ -35,7 +35,9 @@ final readonly class UserController
 
             $user = $this->createUserUseCase->execute($createUserRequest);
 
-            return $this->response->json(['data' => $user], 201);
+            return $this->response->json([
+                'data' => $user,
+            ], 201);
         } catch (Exception $e) {
             return $this->response->json([
                 'error' => 'Failed to create user: ' . $e->getMessage(),
@@ -46,16 +48,16 @@ final readonly class UserController
     #[Route(route: '/users/events', name: 'user.events', methods: ['GET'])]
     public function events(ServerRequestInterface $request): ResponseInterface
     {
-        $query = $request->getQueryParams();
-        if (empty($query['user_id'])) {
-            return $this->response->json([
-                'error' => 'User ID cannot be empty',
-            ], 400);
-        }
-
-        $limit = max(1, (int)($query['limit'] ?? 1));
-
         try {
+            $query = $request->getQueryParams();
+            if (empty($query['user_id'])) {
+                return $this->response->json([
+                    'error' => 'User ID cannot be empty',
+                ], 400);
+            }
+
+            $limit = max(1, (int)($query['limit'] ?? 1));
+
             $userEventsRequest = new GetUserEventsRequest(
                 userId: (int)$query['user_id'],
                 limit: $limit

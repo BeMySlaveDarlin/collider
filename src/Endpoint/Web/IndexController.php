@@ -21,7 +21,7 @@ final readonly class IndexController
     public function index(): ResponseInterface
     {
         return $this->response->json([
-            'message' => 'Ok',
+            'data' => 'Ok',
         ]);
     }
 
@@ -31,7 +31,7 @@ final readonly class IndexController
         $result = $this->cache->flush();
 
         return $this->response->json([
-            'message' => $result ? 'Ok' : 'Fail',
+            'data' => $result ? 'Ok' : 'Fail',
         ]);
     }
 }
