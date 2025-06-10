@@ -1,83 +1,79 @@
 include .env
 
-.PHONY: all build start down restart logs shell composer help cs-check cs-fix cs-fix-diff psalm psalm-baseline psalm-fix psalm-info
+.PHONY: help install start stop restart build rebuild logs shell composer app status test seed migrate gen-ide
 
-all: var composer build start migrate refresh-caches
+help:
+	@echo "Available commands:"
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<command>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-var:
-	mkdir -p var/cache
-	mkdir -p var/log
-	mkdir -p var/storage
-	chmod -R 777 var
+install: runtime composer start
 
-composer:
-	docker compose run --rm composer
+runtime:
+	mkdir -p runtime/logs
+	mkdir -p runtime/caches
+	chmod -R 777 runtime
 
 build:
 	docker compose build
 
-rebuild: down all
+rebuild: stop build start
 
 start:
 	docker compose up -d
 
-refresh-caches:
-	docker compose exec php composer dump-autoload --optimize
-	docker compose exec redis redis-cli flushall
-
-down:
+stop:
 	docker compose down
-	rm -rf var/log/*
-	rm -rf var/cache/*
 
-restart: down start refresh-caches
+restart: stop start
+
+composer:
+	docker compose run --rm composer
+
+app:
+	docker compose exec app bash
+
+shell: app
 
 logs:
-	docker compose logs -f
+	docker compose logs -f app
 
-shell:
-	docker compose exec php bash
+status:
+	docker compose ps
 
 migrate:
-	docker-compose exec php php bin/app.php migrate --force
+	docker compose exec app bin/hyperf.php migrate
 
 seed:
-	docker-compose exec php php bin/app.php events:seed
+	docker compose exec app bin/hyperf.php events:seed
+
+watch:
+	docker compose exec app bin/hyperf.php server:watch
+
+info:
+	docker compose exec app bin/hyperf.php
+
+health:
+	curl http://localhost/health
+
+clean: stop
+	docker compose down -v
+	docker system prune -f
+
+reset: clean install
 
 cs-check:
-	docker compose exec php php-cs-fixer fix --dry-run
+	docker compose exec app vendor/bin/php-cs-fixer fix --dry-run
 
 cs-fix:
-	docker compose exec php php-cs-fixer fix
+	docker compose exec app vendor/bin/php-cs-fixer fix
 
-cs-fix-diff:
-	docker compose exec php php-cs-fixer fix --diff
+phpstan-check:
+	docker compose exec app vendor/bin/phpstan analyse --memory-limit 1G
 
-psalm:
-	docker compose exec php psalm --no-cache
+api-test:
+	@echo "Testing API endpoints..."
+	curl "http://localhost/events?page=1&limit=10"
 
-psalm-baseline:
-	docker compose exec php psalm --set-baseline=psalm-baseline.xml
-
-psalm-clear:
-	./vendor/bin/psalm --clear-cache
-
-psalm-config:
-	./vendor/bin/psalm --init
-
-help:
-	@echo "Available commands:"
-	@echo "  all         - Build and start containers"
-	@echo "  build       - Build Docker images"
-	@echo "  rebuild     - Rebuild Docker images"
-	@echo "  start       - Start development environment"
-	@echo "  down        - Stop development environment"
-	@echo "  restart     - Restart all services"
-	@echo "  logs        - Show logs"
-	@echo "  shell       - Enter PHP container shell"
-	@echo "  var         - Creates var dirs"
-	@echo "  seed        - Seeds database with data"
-	@echo "  composer    - Run composer install"
-	@echo "  cs-check    - Check code style (dry-run)"
-	@echo "  cs-fix      - Fix code style"
-	@echo "  cs-fix-diff - Fix code style with diff"
+load-test:
+	@echo "Running basic load test..."
+	ab -n 1000 -c 10 http://localhost/events?page=1&limit=1000

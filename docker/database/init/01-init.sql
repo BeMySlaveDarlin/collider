@@ -5,4 +5,4 @@ CREATE EXTENSION IF NOT EXISTS "btree_gist";
 
 CREATE SCHEMA IF NOT EXISTS public;
 
-ALTER DATABASE app_db SET timezone TO 'Europe/Moscow';
+ALTER DATABASE collider_db SET timezone TO 'Europe/Moscow';

@@ -1,8 +1,8 @@
 FROM postgres:15-alpine
 
-ARG POSTGRES_DB=app_db
-ARG POSTGRES_USER=app_user
-ARG POSTGRES_PASSWORD=secret
+ARG POSTGRES_DB=collider_db
+ARG POSTGRES_USER=collider_user
+ARG POSTGRES_PASSWORD=collider_secret
 
 RUN apk add --no-cache \
     curl \

@@ -1,0 +1,31 @@
+# Magic behaviour with __get, __set, __call and __callStatic is not exactly static analyser-friendly :)
+# Fortunately, You can ignore it by the following config.
+#
+# vendor/bin/phpstan analyse app --memory-limit 200M -l 0
+#
+parameters:
+  level: 9
+  paths:
+    - ./app
+    - ./config
+  reportUnmatchedIgnoredErrors: false
+  ignoreErrors:
+    - '#Constant BASE_PATH not found#'
+    - '#Access to constant .* on an unknown class Swoole\\Constant#'
+    - '#Call to method .* on an unknown class Swoole\\Coroutine\\WaitGroup#'
+    - '#Instantiated class Swoole\\Coroutine\\WaitGroup not found#'
+    - '#Static call to instance method Hyperf\\HttpServer\\Router\\Router::[a-zA-Z0-9\\_]+\(\)#'
+    - '#Static call to instance method Hyperf\\DbConnection\\Db::[a-zA-Z0-9\\_]+\(\)#'
+    - '#Call to an undefined method Hyperf\\Database\\ConnectionInterface::getPdo\(\)#'
+    - '#Call to an undefined static method .*::find\(\)#'
+    - '#Call to an undefined static method .*::create\(\)#'
+    - '#Call to an undefined static method .*::where\(\)#'
+    - '#Call to an undefined static method .*::select\(\)#'
+    - '#Call to an undefined static method .*::count\(\)#'
+    - '#Call to an undefined static method .*::pluck\(\)#'
+    - '#Right side of && is always true.#'
+    - '#Cannot call method writeln\(\) on Symfony\\Component\\Console\\Style\\SymfonyStyle\|null#'
+    - '#return type has no value type specified in iterable type array#'
+    - '#Property .* type has no value type specified in iterable type array#'
+    - '#Method .* with no value type specified in iterable type array#'
+    - '#Parameter .* of function random_int expects lower number than parameter .*#'

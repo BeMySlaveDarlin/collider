@@ -1,8 +1,36 @@
 # API Documentation
 
-## Events
+## Base URL
 
-### Create Event
+```
+http://localhost
+```
+
+## Response Format
+
+```json
+{
+  "data": {},
+  // Response data
+  "query": {}
+  // Request parameters (if applicable)
+}
+```
+
+## Error Format
+
+```json
+{
+  "error": "Error message",
+  "code": 400
+}
+```
+
+## Endpoints
+
+### Events
+
+#### Create Event
 
 **POST** `/event`
 
@@ -16,8 +44,7 @@ Create a new user event.
   "event_type": "click",
   "timestamp": "2025-05-28T12:34:56Z",
   "metadata": {
-    "page": "/home",
-    "button": "cta"
+    "page": "/home"
   }
 }
 ```
@@ -26,22 +53,23 @@ Create a new user event.
 
 ```json
 {
-  "id": 1,
-  "user_id": "123",
-  "type": "click",
-  "timestamp": "2025-05-28T12:34:56+00:00",
-  "metadata": {
-    "page": "/home",
-    "referrer": "https://google.com"
+  "data": {
+    "id": 1,
+    "user_id": 123,
+    "type": "click",
+    "timestamp": "2025-05-28T12:34:56+00:00",
+    "metadata": {
+      "page": "/home"
+    }
   }
 }
 ```
 
-### Batch Create Events
+#### Batch Create Event
 
 **POST** `/events`
 
-Create multiple events.
+Create a new user event.
 
 **Request Body:**
 
@@ -55,15 +83,6 @@ Create multiple events.
       "page": "/dashboard",
       "referrer": "https://google.com"
     }
-  },
-  {
-    "user_id": 9,
-    "event_type": "page_view",
-    "timestamp": "2025-06-08T10:30:00Z",
-    "metadata": {
-      "page": "/main",
-      "referrer": "https://ya.ru"
-    }
   }
 ]
 ```
@@ -76,13 +95,7 @@ Create multiple events.
 }
 ```
 
-```json
-{
-  "data": "failed to queue"
-}
-```
-
-### List Events
+#### List Events
 
 **GET** `/events?page=1&limit=100`
 
@@ -91,7 +104,7 @@ Get paginated list of events sorted by timestamp.
 **Query Parameters:**
 
 - `page` (int, default: 1) - Page number
-- `limit` (int, default: 100, max: 1000) - Items per page
+- `limit` (int, default: 1) - Items per page
 
 **Response (200):**
 
@@ -100,7 +113,7 @@ Get paginated list of events sorted by timestamp.
   "data": [
     {
       "id": 1,
-      "user_id": "123",
+      "user_id": 123,
       "type": "click",
       "timestamp": "2025-05-28T12:34:56+00:00",
       "metadata": {
@@ -116,36 +129,7 @@ Get paginated list of events sorted by timestamp.
 }
 ```
 
-### Total Events Count
-
-**GET** `/events/total`
-
-Get total count of events.
-
-**Response (200):**
-
-```json
-{
-  "data": [
-    {
-      "id": 1,
-      "user_id": "123",
-      "type": "click",
-      "timestamp": "2025-05-28T12:34:56+00:00",
-      "metadata": {
-        "page": "/home"
-      }
-    }
-  ],
-  "query": {
-    "page": 1,
-    "limit": 100,
-    "total": 1000
-  }
-}
-```
-
-### Delete Events
+#### Delete Events
 
 **DELETE** `/events?before=2025-01-01T00:00:00Z`
 
@@ -160,14 +144,14 @@ Delete events before specified date.
 ```json
 {
   "data": {
-    "deleted_events": 0
+    "deleted_events": 1234567
   }
 }
 ```
 
-## Users
+### Users
 
-### Create User
+#### Create User
 
 **POST** `/users`
 
@@ -184,7 +168,7 @@ Create a new user with random name.
 }
 ```
 
-### Get User Events
+#### Get User Events
 
 **GET** `/users/events?user_id=123&limit=1000`
 
@@ -193,7 +177,7 @@ Get last events for specific user.
 **Query Parameters:**
 
 - `user_id` (int, required) - User ID
-- `limit` (int, default: 1000, max: 1000) - Maximum events to return
+- `limit` (int, default: 1) - Maximum events to return
 
 **Response (200):**
 
@@ -210,16 +194,16 @@ Get last events for specific user.
     }
   ],
   "query": {
-    "page": 1,
+    "user_id": 123,
     "limit": 1000,
     "total": 1000
   }
 }
 ```
 
-## Statistics
+### Statistics
 
-### Get Stats
+#### Get Stats
 
 **GET** `/stats?from=2025-01-01T00:00:00Z&to=2025-12-31T23:59:59Z&type=click&limit=5`
 
@@ -244,60 +228,43 @@ Get aggregated statistics for events.
       "/cart/remove": 106391,
       "/login": 106253,
       "/emails/click": 106250,
-      "/registration": 106181,
-      "/order/create": 106168,
-      "/logout": 106141,
-      "/notifications/read": 106139,
-      "/payment/complete": 106042,
-      "/product/view": 106040
+      "/registration": 106181
     }
   },
   "query": {
-    "from": "2025-06-01 00:00:00",
-    "to": "2025-06-08 00:00:00",
-    "limit": "10"
+    "from": "2025-06-01T00:00:00Z",
+    "to": "2025-06-08T00:00:00Z",
+    "limit": 5
   }
 }
 ```
 
-### Clear cache
+## Status Codes
 
-**GET** `/clear_cache`
+| Code | Description           |
+|------|-----------------------|
+| 200  | Success               |
+| 201  | Created               |
+| 400  | Bad Request           |
+| 404  | Not Found             |
+| 500  | Internal Server Error |
 
-Clears caches
+## Examples
 
-**Response (200):**
+### cURL
 
-```json
-{
-  "data": "Ok"
-}
+```bash
+# Create event
+curl -X POST http://localhost/events \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": 1, "event_type": "click", "timestamp": "2025-01-01T00:00:00Z"}'
+
+# Get events
+curl http://localhost/events?page=1&limit=100
+
+# Get statistics
+curl "http://localhost/stats?from=2025-01-01T00:00:00Z&to=2025-01-31T23:59:59Z"
+
+# Delete old events
+curl -X DELETE "http://localhost/events?before=2025-01-01T00:00:00Z"
 ```
-
-## Error Responses
-
-All endpoints may return error responses in the following format:
-
-**Response (400/500):**
-
-```json
-{
-  "error": "Error description"
-}
-```
-
-### Common HTTP Status Codes
-
-- `200` - Success
-- `201` - Created
-- `400` - Bad Request
-- `404` - Not Found
-- `500` - Internal Server Error
-
-## Rate Limiting
-
-No rate limiting is currently implemented.
-
-## Authentication
-
-No authentication is currently required.

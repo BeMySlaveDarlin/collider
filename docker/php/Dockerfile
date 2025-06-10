@@ -1,36 +1,27 @@
 FROM bemyslavedarlin/collider:1.0 AS php_base
 
-ARG APP_PORT=9501
-ARG TIMEZONE=UTC
+ENV PATH=/opt/www/vendor/bin:/usr/local/bin:${PATH}
 
-ENV COMPOSER_ALLOW_SUPERUSER=1
-ENV COMPOSER_HOME=/tmp
-ENV PATH=/usr/local/bin:/app/vendor/bin:/app/bin:${PATH}
+WORKDIR /opt/www
 
-WORKDIR /app
+COPY docker/php/conf.d/hyperf.ini /usr/local/etc/php/conf.d/991-hyperf.ini
 
-EXPOSE ${APP_PORT}
+EXPOSE 9501
 
 FROM php_base AS php_dev
 
 ENV APP_ENV=dev
+ENV SCAN_CACHEABLE=false
 
-RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
-COPY docker/php/conf.d/php.dev.ini $PHP_INI_DIR/conf.d/99-app.ini
+COPY docker/php/conf.d/hyperf.dev.ini /usr/local/etc/php/conf.d/992-hyperf-dev.ini
 
-FROM php_base AS php_prod
+FROM php_base AS php_production
 
-ENV APP_ENV=prod
+ENV APP_ENV=production
+ENV SCAN_CACHEABLE=true
 
-RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
-COPY docker/php/conf.d/php.prod.ini $PHP_INI_DIR/conf.d/99-app.ini
+COPY docker/php/conf.d/hyperf.prod.ini /usr/local/etc/php/conf.d/992-hyperf-prod.ini
 
-FROM php_base AS composer_dev
+FROM php_base AS composer
 
-CMD composer install \
-    && composer dump-autoload --classmap-authoritative
-
-FROM php_base AS composer_prod
-
-CMD composer install --no-dev --optimize-autoloader \
-    && composer dump-autoload --classmap-authoritative --no-dev
+CMD ["composer", "install"]

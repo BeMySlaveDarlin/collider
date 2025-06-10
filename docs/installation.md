@@ -1,145 +1,129 @@
-# Installation
+# Installation Guide
 
 ## Requirements
 
 - PHP 8.3+
-- Swoole 6.0+
-- Docker & Docker Compose
+- Swoole 5.0+
 - PostgreSQL 15
 - Redis 7
-- Composer
+- Docker & Docker Compose
+- Composer 2.x
+
+### PHP Extensions
+
+- `ext-swoole` (>=5.0)
+- `ext-pdo`
+- `ext-pdo_pgsql`
+- `ext-redis`
+- `ext-json`
+- `ext-openssl`
+- `ext-pcntl`
 
 ## Quick Start
 
-### 1. Clone and Setup
+### 1. Clone Repository
 
 ```bash
 git clone git@github.com:BeMySlaveDarlin/collider.git
 cd collider
-make all
 ```
 
-### 2. Environment
+### 2. Configuration
 
-Copy environment configuration:
+Copy the example environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-### 3. Database Setup
+### 3. Automated Setup
 
-Start services:
+Using Make:
 
 ```bash
+make install
+```
+
+This command will:
+
+- Build Docker containers
+- Install dependencies
+- Run database migrations
+- Start all services
+
+If you prefer manual setup:
+
+```bash
+# Start Docker containers
 docker-compose up -d
+
+# Install PHP dependencies
+docker-compose exec php composer install
+
+# Run database migrations
+docker-compose exec php bin/hyperf.php migrate
+
+# Seed test data (optional)
+docker-compose exec php bin/hyperf.php events:seed
 ```
 
-Run migrations:
+## Docker Services
+
+| Service  | Port    | Description               |
+|----------|---------|---------------------------|
+| php      | 9501    | Hyperf/Swoole application |
+| nginx    | 80, 443 | Web server                |
+| database | 5432    | PostgreSQL 15             |
+| redis    | 6379    | Redis cache               |
+
+## Starting the Application
+
+### Development Mode
 
 ```bash
-docker-compose exec php php bin/app.php migrate
+# Using Hyperf's built-in server
+docker-compose exec php bin/hyperf.php start
+
+# With hot-reload
+docker-compose exec php bin/hyperf.php server:watch
 ```
 
-### 4. Seed Data
-
-Generate test data:
+### Production Mode
 
 ```bash
-docker-compose exec php php bin/app.php events:seed
+# Set environment
+export APP_ENV=production
+
+# Start with optimizations
+docker-compose exec php bin/hyperf.php start
 ```
 
-## Manual Installation
+## Seeding Test Data
 
-### Dependencies
+Generate 10 million test events:
 
 ```bash
-composer install
-```
-
-### Database
-
-Configure PostgreSQL connection in `.env`:
-
-```env
-DB_CONNECTION=postgres
-DB_HOST=localhost
-DB_PORT=5432
-DB_DATABASE=app_db
-DB_USERNAME=app_user
-DB_PASSWORD=secret
-```
-
-### Redis
-
-Configure Redis connection in `.env`:
-
-```env
-REDIS_HOST=localhost
-REDIS_PORT=6379
-```
-
-### Migrations
-
-Run database migrations:
-
-```bash
-php bin/app.php migrate
-```
-
-### Start Server
-
-```bash
-php bin/http.php start
-```
-
-## Docker Configuration
-
-### Services
-
-- `php` - PHP 8.1 with Swoole
-- `nginx` - Web server (ports 80/443)
-- `database` - PostgreSQL 15 (port 5432)
-- `redis` - Redis 7
-
-### Useful Commands
-
-```bash
-# Build containers
-make build
-
-# Start environment
-make up
-
-# Stop environment
-make down
-
-# View logs
-make logs
-
-# Enter PHP container
-make shell
-
-# Seed database
+# Using Make
 make seed
+
+# Or manually
+docker-compose exec php bin/hyperf.php events:seed
 ```
 
-## Performance Tuning
+## Available Make Commands
 
-### PostgreSQL
-
-Edit `docker/database/postgresql.conf`:
-
-- `shared_buffers = 256MB`
-- `effective_cache_size = 1GB`
-- `work_mem = 16MB`
-
-### Swoole
-
-Configure in `.env`:
-
-```env
-SWOOLE_WORKER_NUM=4
-SWOOLE_TASK_WORKER_NUM=4
-SWOOLE_MAX_REQUEST=10000
+```bash
+make install     # Complete setup
+make start       # Start containers
+make stop        # Stop containers
+make logs        # View logs
+make shell       # Enter PHP container
+make seed        # Seed database
+make migrate     # Run migrations
 ```
+
+## Next Steps
+
+1. Seed test data for development
+2. Review [API Documentation](api.md)
+3. Explore [Console Commands](console.md)

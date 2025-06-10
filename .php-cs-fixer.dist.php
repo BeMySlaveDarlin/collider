@@ -6,7 +6,7 @@ use PhpCsFixer\Config;
 use PhpCsFixer\Finder;
 
 $finder = Finder::create()
-    ->in(__DIR__ . '/src')
+    ->in(__DIR__ . '/app')
     ->name('*.php')
     ->ignoreDotFiles(true)
     ->ignoreVCS(true);
@@ -71,4 +71,4 @@ return (new Config())
         ],
     ])
     ->setFinder($finder)
-    ->setCacheFile(__DIR__ . '/var/cache/.php-cs-fixer.cache');
+    ->setCacheFile(__DIR__ . '/runtime/caches/.php-cs-fixer.cache');
