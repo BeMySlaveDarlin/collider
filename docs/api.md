@@ -11,9 +11,7 @@ http://localhost
 ```json
 {
   "data": {},
-  // Response data
   "query": {}
-  // Request parameters (if applicable)
 }
 ```
 
@@ -32,7 +30,7 @@ http://localhost
 
 #### Create Event
 
-**POST** `/event`
+**POST** `/events`
 
 Create a new user event.
 
@@ -67,7 +65,7 @@ Create a new user event.
 
 #### Batch Create Event
 
-**POST** `/events`
+**POST** `/events/batch`
 
 Create a new user event.
 

@@ -18,6 +18,7 @@
 - `ext-json`
 - `ext-openssl`
 - `ext-pcntl`
+- `ext-ds`
 
 ## Quick Start
 

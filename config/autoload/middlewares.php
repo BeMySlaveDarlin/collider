@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Application\Middleware\HttpRequestLoggerMiddleware;
+use App\Infrastructure\Middleware\HttpRequestLoggerMiddleware;
 
 return [
     'http' => [

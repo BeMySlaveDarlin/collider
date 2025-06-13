@@ -16,7 +16,7 @@ return [
         'handle_timeout' => 10,
         'processes' => 1,
         'concurrent' => [
-            'limit' => 100,
+            'limit' => 10000,
         ],
         'max_messages' => 0,
     ],

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Application\Exception\Handler\AppExceptionHandler;
+use App\Infrastructure\Exception\Handler\AppExceptionHandler;
 
 return [
     'handler' => [
