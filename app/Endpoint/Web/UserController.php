@@ -10,7 +10,6 @@ use App\Domain\UserAnalytics\ValueObject\CreateUserRequest;
 use App\Domain\UserAnalytics\ValueObject\GetUserEventsRequest;
 use Faker\Factory;
 use Hyperf\Di\Annotation\Inject;
-use Hyperf\HttpMessage\Exception\BadRequestHttpException;
 use Psr\Http\Message\ServerRequestInterface;
 
 class UserController extends AbstractController
@@ -33,17 +32,13 @@ class UserController extends AbstractController
         ];
     }
 
-    public function events(ServerRequestInterface $request): array
+    public function events(ServerRequestInterface $request, int $userId): array
     {
         $query = $request->getQueryParams();
-        if (empty($query['user_id'])) {
-            throw new BadRequestHttpException('Parameter "user_id" is missing');
-        }
-
         $limit = max(1, (int) ($query['limit'] ?? 1));
 
         $userEventsRequest = new GetUserEventsRequest(
-            userId: (int) $query['user_id'],
+            userId: $userId,
             limit: $limit
         );
 

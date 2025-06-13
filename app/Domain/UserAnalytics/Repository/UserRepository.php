@@ -7,7 +7,8 @@ namespace App\Domain\UserAnalytics\Repository;
 use App\Domain\UserAnalytics\Entity\User;
 use Hyperf\Cache\Annotation\Cacheable;
 use Hyperf\Cache\Annotation\CacheEvict;
-use Hyperf\Database\Model\Collection;
+use Hyperf\DbConnection\Db;
+use PDO;
 
 class UserRepository
 {
@@ -16,51 +17,26 @@ class UserRepository
         return User::find($id);
     }
 
-    public function findByName(string $name): ?User
-    {
-        return User::where('name', $name)->first();
-    }
-
-    public function findOrCreateByName(string $name): User
-    {
-        $user = $this->findByName($name);
-
-        if (!$user) {
-            $user = User::create([
-                'name' => $name,
-                'created_at' => 'now()',
-            ]);
-        }
-
-        return $user;
-    }
-
-    /**
-     * @return Collection<int, User>
-     */
-    #[Cacheable(prefix: 'users', value: '_all', ttl: 3600)]
-    public function findAll(): Collection
-    {
-        return User::all();
-    }
-
     #[Cacheable(prefix: 'users', value: '_all_ids', ttl: 3600)]
     public function getAllIds(): array
     {
-        return User::query()->pluck('id')->toArray();
+        return Db::connection()
+            ->getPdo()
+            ->query('SELECT id FROM users')
+            ->fetchAll(PDO::FETCH_COLUMN);
     }
 
     public function save(User $user): User
     {
         $user->save();
 
-        $this->invalidateCaches($user);
+        $this->invalidateCaches();
 
         return $user;
     }
 
     #[CacheEvict(prefix: 'users')]
-    private function invalidateCaches(User $user): void
+    public function invalidateCaches(): void
     {
     }
 }

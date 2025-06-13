@@ -11,15 +11,13 @@ use Hyperf\DbConnection\Db;
 
 class EventRepository
 {
-    public function findById(int $id): ?Event
-    {
-        return Event::find($id);
-    }
-
     #[Cacheable(prefix: 'events', value: '_count', ttl: 3600)]
     public function countAll(): int
     {
-        return Event::count();
+        return (int) Db::connection()
+            ->getPdo()
+            ->query('SELECT COUNT(*) FROM events')
+            ->fetchColumn();
     }
 
     #[Cacheable(prefix: 'events', value: '_user_#{userId}_#{limit}', ttl: 3600)]
@@ -35,15 +33,13 @@ class EventRepository
         ';
 
         $rows = Db::select($sql, [$userId, $limit]);
-
-        return array_map(static function (object $row): array {
-            $arr = (array) $row;
-            if (isset($arr['metadata'])) {
-                $arr['metadata'] = json_decode($arr['metadata'], true, 512, JSON_THROW_ON_ERROR);
+        foreach ($rows as &$row) {
+            if (isset($row->metadata)) {
+                $row->metadata = json_decode($row->metadata, true, 512, JSON_THROW_ON_ERROR);
             }
+        }
 
-            return $arr;
-        }, $rows);
+        return $rows;
     }
 
     #[Cacheable(prefix: 'events', value: '_page_#{limit}_#{offset}', ttl: 3600)]
@@ -58,15 +54,13 @@ class EventRepository
         ';
 
         $rows = Db::select($sql, [$limit, $offset]);
-
-        return array_map(static function (object $row): array {
-            $arr = (array) $row;
-            if (isset($arr['metadata'])) {
-                $arr['metadata'] = json_decode($arr['metadata'], true, 512, JSON_THROW_ON_ERROR);
+        foreach ($rows as &$row) {
+            if (isset($row->metadata)) {
+                $row->metadata = json_decode($row->metadata, true, 512, JSON_THROW_ON_ERROR);
             }
+        }
 
-            return $arr;
-        }, $rows);
+        return $rows;
     }
 
     #[Cacheable(prefix: 'events', value: '_stats_#{limit}_#{eventTypeId}_#{from}_#{to}', ttl: 3600)]
@@ -169,18 +163,13 @@ class EventRepository
         return $event;
     }
 
-    public function batchInsert(array $values): void
+    public function batchInsert(string $sql, array $values): void
     {
-        $placeholders = \array_fill(0, (int) (\count($values) / 4), '(?, ?, ?, ?)');
-        $sql = 'INSERT INTO events (user_id, type_id, timestamp, metadata) VALUES ' . implode(',', $placeholders);
-
         $pdo = Db::connection()->getPdo();
         $statement = $pdo->prepare($sql);
         $statement->execute($values);
 
         $this->invalidateCaches();
-
-        unset($sql, $placeholders);
     }
 
     #[CacheEvict(prefix: 'events', all: true)]

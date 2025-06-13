@@ -23,8 +23,8 @@ class RandomSeedPool
 
     public function __construct(
         array $userIds,
-        array $typeNames,
         array $typeNameToId,
+        array $typeNames,
         array $types,
         array $referrers,
         int $startTs,

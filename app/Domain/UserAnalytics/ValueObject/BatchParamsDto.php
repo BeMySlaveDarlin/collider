@@ -10,6 +10,7 @@ class BatchParamsDto
         public int $batch = 0,
         public int | float $batches = 0,
         public int $batchSize = 0,
+        public string $sql = '',
     ) {
     }
 }

@@ -10,6 +10,7 @@ use App\Domain\UserAnalytics\Repository\EventRepository;
 use App\Domain\UserAnalytics\Repository\EventTypeRepository;
 use App\Domain\UserAnalytics\Repository\UserRepository;
 use App\Domain\UserAnalytics\ValueObject\BatchParamsDto;
+use Carbon\Carbon;
 use Faker\Factory;
 use Faker\Generator;
 use Hyperf\DbConnection\Db;
@@ -20,7 +21,7 @@ use Swoole\Coroutine\WaitGroup;
 
 class SeedDatabaseUseCase
 {
-    public const int MAX_COROUTINES = 10;
+    public const int MAX_COROUTINES = 14;
     private Generator $faker;
     #[Inject]
     protected UserRepository $userRepository;
@@ -39,185 +40,166 @@ class SeedDatabaseUseCase
 
     public function execute(callable $logger): void
     {
-        \sleep(5);
-        $startTime = microtime(true);
-        $startMemory = memory_get_usage(true);
+        $this->prepareDb($logger);
 
         $this->cleanDatabase($logger);
         $this->seedUsers($logger);
         $this->seedEventTypes($logger);
         $this->seedEvents($logger);
 
-        $endTime = microtime(true);
-        $endMemory = memory_get_usage(true);
-        $peakMemory = memory_get_peak_usage(true);
-
-        $duration = $endTime - $startTime;
-        $usedMemory = $endMemory - $startMemory;
-
-        $logger(\sprintf('Seeding completed in %.2f seconds.', $duration));
-        $logger(
-            \sprintf(
-                'Memory used: %.2f MB (peak: %.2f MB)',
-                $usedMemory / 1024 / 1024,
-                $peakMemory / 1024 / 1024
-            )
-        );
+        $this->setDbDefaults($logger);
     }
 
     private function cleanDatabase(callable $logger): void
     {
-        $logger('<fg=green> ● Cleaning old data...</fg=green>');
-
-        Db::statement('SET session_replication_role = replica');
+        $this->printStartMessage($logger, 'Cleaning database');
 
         Db::statement('TRUNCATE TABLE events RESTART IDENTITY CASCADE');
         Db::statement('TRUNCATE TABLE event_types RESTART IDENTITY CASCADE');
         Db::statement('TRUNCATE TABLE users RESTART IDENTITY CASCADE');
 
-        Db::statement('SET session_replication_role = DEFAULT');
-
-        $logger('  <fg=cyan>▶</fg=cyan> Old data removed', true);
+        $this->printResultMessage($logger, 'Old data removed');
     }
 
     private function seedUsers(callable $logger): void
     {
-        $logger('<fg=green> ● Seeding users...</fg=green>');
+        $this->printStartMessage($logger, 'Seeding users');
 
-        $values = [];
-
-        for ($i = 1; $i <= $this->seedPolicy->getUsersCount(); $i++) {
-            $values[] = \sprintf('(%s)', Db::connection()->getPdo()->quote($this->faker->name()));
+        $count = $this->seedPolicy->getUsersCount();
+        $names = [];
+        for ($i = 0; $i < $count; $i++) {
+            $names[] = $this->faker->name();
         }
+        $placeholders = rtrim(str_repeat('( ? ),', $count), ',');
+        $sql = "INSERT INTO users (name) VALUES $placeholders";
+        Db::connection()->getPdo()->prepare($sql)->execute($names);
 
-        $valuesStr = implode(',', $values);
-        $sql = "INSERT INTO users (name) VALUES $valuesStr;";
-
-        Db::statement($sql);
-
-        $logger(\sprintf('  <fg=cyan>▶</fg=cyan> %s users created', count($values)), true);
-
-        unset($values, $valuesStr, $sql);
+        $this->printResultMessage($logger, \sprintf('%d users created', $count));
     }
 
     private function seedEventTypes(callable $logger): void
     {
-        $logger('<fg=green> ● Seeding event types...</fg=green>');
+        $this->printStartMessage($logger, 'Seeding event types');
 
-        $types = $this->seedPolicy->getEventTypes();
-        $values = [];
+        $types = array_keys($this->seedPolicy->getEventTypes());
+        $count = count($types);
+        $placeholders = rtrim(str_repeat('( ? ),', $count), ',');
+        $sql = "INSERT INTO event_types (name) VALUES $placeholders";
+        Db::connection()->getPdo()->prepare($sql)->execute($types);
 
-        foreach ($types as $type => $params) {
-            $values[] = \sprintf('(%s)', Db::connection()->getPdo()->quote($type));
-        }
-
-        $valuesStr = implode(',', $values);
-        $sql = "INSERT INTO event_types (name) VALUES $valuesStr";
-
-        Db::statement($sql);
-
-        $logger(\sprintf('  <fg=cyan>▶</fg=cyan> %s event types created', count($values)), true);
-
-        unset($types, $values, $valuesStr, $sql);
+        $this->printResultMessage($logger, \sprintf('%d event types created', $count));
     }
 
     private function seedEvents(callable $logger): void
     {
-        $logger('<fg=green> ● Seeding events...</fg=green>');
+        $this->printStartMessage($logger, 'Seeding events');
 
         $userIds = $this->userRepository->getAllIds();
         $typeNameToId = $this->eventTypeRepository->getNameToIdMap();
         if (empty($userIds)) {
-            $logger('<fg=red>❌ Error:No users found, skipping event seeding.</fg=red>');
+            $this->printErrorMessage($logger, 'No users found, skipping event seeding');
 
             return;
         }
         if (empty($typeNameToId)) {
-            $logger('<fg=red>❌ Error:No event types found, skipping event seeding.</fg=red>');
+            $this->printErrorMessage($logger, 'No event types found, skipping event seeding');
 
             return;
         }
 
-        $types = $this->seedPolicy->getEventTypes();
-        $typeNames = array_keys($typeNameToId);
-        $referrers = $this->seedPolicy->getReferrers();
-
-        $startTs = strtotime('-30 days');
         $nowTs = time();
-
+        $startTs = strtotime('-30 days');
+        $typeNames = array_keys($typeNameToId);
+        $types = $this->seedPolicy->getEventTypes();
+        $referrers = $this->seedPolicy->getReferrers();
         $batchSize = $this->seedPolicy->getBatchSize();
         $totalEvents = $this->seedPolicy->getEventsCount();
         $batches = (int) \ceil($totalEvents / $batchSize);
 
-        $pools = new RandomSeedPool(
-            userIds: $userIds,
-            typeNames: $typeNames,
-            typeNameToId: $typeNameToId,
-            types: $types,
-            referrers: $referrers,
-            startTs: $startTs,
-            endTs: $nowTs
-        );
+        $logger(\sprintf(' <fg=green>📦 Total %s chunks with %s events each will be processed</fg=green>', $batches, $batchSize));
 
-        Db::statement('SET session_replication_role = replica');
-        Db::statement('ALTER TABLE events DISABLE TRIGGER ALL');
-
-        $logger(\sprintf('  <fg=green>● Total %s chunks with %s events each will be processed:</fg=green>', $batches, $batchSize));
+        $placeholders = rtrim(str_repeat('(?, ?, ?, ?),', $batchSize), ',');
+        $sql = "INSERT INTO events (user_id, type_id, timestamp, metadata) VALUES $placeholders";
+        $pools = new RandomSeedPool($userIds, $typeNameToId, $typeNames, $types, $referrers, $startTs, $nowTs);
 
         $waitGroup = new WaitGroup();
-        $semaphore = new Channel(self::MAX_COROUTINES);
+        $semaphore = new Channel($this->getMaxCoroutines());
         for ($batch = 1; $batch <= $batches; $batch++) {
-            $batchParams = new BatchParamsDto($batch, $batches, $batchSize);
-
             $waitGroup->add();
-
-            Coroutine::create(function () use ($waitGroup, $semaphore, $logger, $batchParams, $pools) {
+            $batchParams = new BatchParamsDto($batch, $batches, $batchSize, $sql);
+            Coroutine::create(function () use ($waitGroup, $semaphore, $batchParams, $pools) {
                 $semaphore->push(1);
                 try {
-                    $this->seedChunk($logger, $batchParams, $pools);
+                    $this->seedChunk($batchParams, $pools);
                 } finally {
                     $semaphore->pop();
                     $waitGroup->done();
                 }
             });
         }
-
         $waitGroup->wait();
 
-        Db::statement('ALTER TABLE events ENABLE TRIGGER ALL');
-        Db::statement('SET session_replication_role = DEFAULT');
-
-        $this->eventRepository->invalidateCaches();
-
-        unset($pools, $userIds, $typeNameToId, $types, $typeNames, $referrers);
-
         $logger('');
-        $logger(\sprintf('  <fg=cyan>▶</fg=cyan> %s events created', $totalEvents), true);
+        $this->printResultMessage($logger, \sprintf('%s events created', $totalEvents));
     }
 
-    private function seedChunk(callable $logger, BatchParamsDto $batchParams, RandomSeedPool $pools): void
+    private function seedChunk(BatchParamsDto $batchParams, RandomSeedPool $pools): void
     {
-        if ($batchParams->batchSize <= 0) {
-            $logger(\sprintf('  <fg=cyan>▶</fg=cyan> Skipping empty chunk %s/%s', $batchParams->batch, $batchParams->batches));
-
-            return;
-        }
-
-        $placeholders = [];
         $values = [];
-
         for ($i = 1; $i <= $batchParams->batchSize; $i++) {
-            $placeholders[] = '(?, ?, ?, ?)';
             $values[] = $pools->getRandomUserId();
             $values[] = $pools->getRandomEventTypeId();
             $values[] = $pools->getRandomTimestamp();
             $values[] = $pools->getRandomMetadata();
         }
+        $this->eventRepository->batchInsert($batchParams->sql, $values);
+    }
 
-        $this->eventRepository->batchInsert($values);
+    private function prepareDb(callable $logger): void
+    {
+        $this->printStartMessage($logger, 'Preparing database');
 
-        unset($values, $placeholders);
+        Db::statement('SET session_replication_role = replica');
+        Db::statement('SET synchronous_commit = OFF');
 
-        $logger(\sprintf('  <fg=cyan>▶</fg=cyan> Chunk %s/%s processed', $batchParams->batch, $batchParams->batches));
+        $this->printResultMessage($logger, 'Done');
+    }
+
+    private function setDbDefaults(callable $logger): void
+    {
+        $this->printStartMessage($logger, 'Setting database to defaults');
+
+        Db::statement('SET session_replication_role = DEFAULT');
+        Db::statement('SET synchronous_commit = ON');
+
+        $this->printResultMessage($logger, 'Done');
+    }
+
+    private function getTimestamp(): string
+    {
+        return Carbon::now()->format('Y-m-d H:i:s.u');
+    }
+
+    private function printStartMessage(callable $logger, string $message = ''): void
+    {
+        $logger(\sprintf("<fg=green>⌛ [%s] $message</fg=green>", $this->getTimestamp()));
+    }
+
+    private function printResultMessage(callable $logger, string $message = ''): void
+    {
+        $logger("  <fg=cyan>▶</fg=cyan> $message", true);
+    }
+
+    private function printErrorMessage(callable $logger, string $message = ''): void
+    {
+        $logger("  <fg=red>❌ $message</fg=red>", true);
+    }
+
+    private function getMaxCoroutines(): int
+    {
+        $numprocs = (int) shell_exec('nproc') ?: 2;
+        $numCoro = $numprocs * 3;
+
+        return max($numCoro, self::MAX_COROUTINES);
     }
 }
