@@ -1,12 +1,12 @@
 # Magic behaviour with __get, __set, __call and __callStatic is not exactly static analyser-friendly :)
 # Fortunately, You can ignore it by the following config.
 #
-# vendor/bin/phpstan analyse app --memory-limit 200M -l 0
+# vendor/bin/phpstan analyse src --memory-limit 200M -l 0
 #
 parameters:
   level: 9
   paths:
-    - ./app
+    - ./src
     - ./config
   reportUnmatchedIgnoredErrors: false
   ignoreErrors:

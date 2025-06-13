@@ -13,23 +13,23 @@ RUN set -ex \
 RUN set -ex \
     && apk update \
     && apk add --no-cache \
-        mc git curl wget unzip nano make bash \
-        postgresql-client postgresql-dev libpq libpq-dev libsodium
-
-RUN set -ex \
-    && apk add --no-cache \
-        php83-pdo php83-pdo_pgsql php83-pgsql php83-pcntl php83-sockets php83-redis \
-    || echo "Some extensions not available via apk, will use alternative methods"
+        mc git curl wget unzip nano make bash autoconf g++ make \
+        postgresql-client postgresql-dev \
+        libpq libpq-dev libsodium \
+        php83-dev php83-pdo php83-pdo_pgsql php83-pgsql php83-pcntl \
+        php83-sockets php83-redis php83-pecl-ds php83-pecl-igbinary \
+    && cd /tmp \
+    && rm -rf /tmp/* /var/cache/apk/* /usr/share/man /usr/share/doc
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV COMPOSER_HOME=/tmp
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-ENV PATH=/opt/www/vendor/bin:/usr/local/bin:${PATH}
+ENV PATH=/app/vendor/bin:/usr/local/bin:${PATH}
 
-WORKDIR /opt/www
+WORKDIR /app
 
-COPY docker/php/conf.d/hyperf.ini /usr/local/etc/php/conf.d/991-hyperf.ini
+COPY docker/php/conf.d/hyperf.ini /etc/php83/conf.d/991-hyperf.ini
 
 EXPOSE 9501
 
@@ -38,14 +38,14 @@ FROM php_base AS php_dev
 ENV APP_ENV=dev
 ENV SCAN_CACHEABLE=false
 
-COPY docker/php/conf.d/hyperf.dev.ini /usr/local/etc/php/conf.d/992-hyperf-dev.ini
+COPY docker/php/conf.d/hyperf.dev.ini /etc/php83/conf.d/992-hyperf-dev.ini
 
 FROM php_base AS php_production
 
 ENV APP_ENV=production
 ENV SCAN_CACHEABLE=true
 
-COPY docker/php/conf.d/hyperf.prod.ini /usr/local/etc/php/conf.d/992-hyperf-prod.ini
+COPY docker/php/conf.d/hyperf.prod.ini /etc/php83/conf.d/992-hyperf-prod.ini
 
 FROM php_base AS composer
 

@@ -24,7 +24,10 @@ start:
 stop:
 	docker compose down
 
-restart: stop start
+restart: stop clear-cache start
+
+clear-cache:
+	rm -rf runtime/container/*
 
 composer:
 	docker compose run --rm composer
@@ -41,16 +44,16 @@ status:
 	docker compose ps
 
 migrate:
-	docker compose exec app bin/hyperf.php migrate
+	docker compose exec app php bin/hyperf.php migrate
 
 seed:
-	docker compose exec app bin/hyperf.php events:seed
+	docker compose exec app php bin/hyperf.php events:seed
 
 watch:
-	docker compose exec app bin/hyperf.php server:watch
+	docker compose exec app php bin/hyperf.php server:watch
 
 info:
-	docker compose exec app bin/hyperf.php
+	docker compose exec app php bin/hyperf.php
 
 health:
 	curl http://localhost/health
@@ -62,18 +65,22 @@ clean: stop
 reset: clean install
 
 cs-check:
-	docker compose exec app vendor/bin/php-cs-fixer fix --dry-run
+	docker compose exec app php vendor/bin/php-cs-fixer fix --dry-run
 
 cs-fix:
-	docker compose exec app vendor/bin/php-cs-fixer fix
+	docker compose exec app php vendor/bin/php-cs-fixer fix
 
 phpstan-check:
-	docker compose exec app vendor/bin/phpstan analyse --memory-limit 1G
+	docker compose exec app php vendor/bin/phpstan analyse --memory-limit 1G
 
 api-test:
 	@echo "Testing API endpoints..."
 	curl "http://localhost/events?page=1&limit=10"
 
-load-test:
+load-test-ab:
 	@echo "Running basic load test..."
-	ab -n 1000 -c 10 http://localhost/events?page=1&limit=1000
+	./bin/ab_test.sh http://localhost 123 user.registered
+
+load-test-wrk:
+	@echo "Running basic load test..."
+	./bin/wrk_test.sh http://localhost 123 user.registered

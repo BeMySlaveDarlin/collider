@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use Hyperf\Codec\Packer\IgbinarySerializerPacker;
+use Hyperf\ModelCache\Handler\RedisHandler;
+
 use function Hyperf\Support\env;
 
 return [
@@ -18,29 +21,28 @@ return [
         'schema' => 'public',
         'sslmode' => 'prefer',
         'pool' => [
-            'min_connections' => (int) env('DB_POOL_MIN_CONNECTIONS', 1),
-            'max_connections' => (int) env('DB_POOL_MAX_CONNECTIONS', 10),
+            'min_connections' => (int) env('DB_POOL_MIN_CONNECTIONS', 100),
+            'max_connections' => (int) env('DB_POOL_MAX_CONNECTIONS', 1000),
             'connect_timeout' => (float) env('DB_POOL_CONNECT_TIMEOUT', 10.0),
             'wait_timeout' => (float) env('DB_POOL_WAIT_TIMEOUT', 3.0),
-            'heartbeat' => (int) env('DB_POOL_HEARTBEAT', 60),
+            'heartbeat' => (int) env('DB_POOL_HEARTBEAT', -1),
             'max_idle_time' => (float) env('DB_POOL_MAX_IDLE_TIME', 60),
         ],
-        'cache' => [
-            'handler' => Hyperf\ModelCache\Handler\RedisHandler::class,
-            'cache_key' => '{mc:%s:m:%s}:%s:%s',
-            'prefix' => 'database',
-            'ttl' => 3600 * 24,
-            'empty_model_ttl' => 600,
-            'load_script' => true,
+        'options' => [
+            PDO::ATTR_CASE => PDO::CASE_NATURAL,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_ORACLE_NULLS => PDO::NULL_NATURAL,
+            PDO::ATTR_STRINGIFY_FETCHES => false,
+            PDO::ATTR_EMULATE_PREPARES => false,
         ],
-        'commands' => [
-            'gen:model' => [
-                'path' => 'app/Domain/UserAnalytics/Entity',
-                'force_casts' => true,
-                'inheritance' => 'Model',
-                'uses' => '',
-                'table_mapping' => [],
-            ],
+        'cache' => [
+            'handler' => RedisHandler::class,
+            'packer' => IgbinarySerializerPacker::class,
+            'cache_key' => '{mc:%s:m:%s}:%s:%s',
+            'prefix' => 'd:',
+            'ttl' => 300,
+            'empty_model_ttl' => 5,
+            'load_script' => true,
         ],
     ],
 ];

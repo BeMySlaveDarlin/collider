@@ -5,25 +5,25 @@ declare(strict_types=1);
 return [
     'generator' => [
         'command' => [
-            'namespace' => 'App\\Endpoint\\Command',
+            'namespace' => 'App\\Infrastructure\\Endpoint\\Command',
         ],
         'controller' => [
-            'namespace' => 'App\\Endpoint\\Web',
+            'namespace' => 'App\\Infrastructure\\Endpoint\\Web',
         ],
         'aspect' => [
-            'namespace' => 'App\\Application\\Aspect',
+            'namespace' => 'App\\Infrastructure\\Aspect',
         ],
         'job' => [
-            'namespace' => 'App\\Application\\Job',
+            'namespace' => 'App\\Infrastructure\\Job',
         ],
         'listener' => [
-            'namespace' => 'App\\Application\\Listener',
+            'namespace' => 'App\\Infrastructure\\Listener',
         ],
         'middleware' => [
-            'namespace' => 'App\\Application\\Middleware',
+            'namespace' => 'App\\Infrastructure\\Middleware',
         ],
         'Process' => [
-            'namespace' => 'App\\Application\\Process',
+            'namespace' => 'App\\Infrastructure\\Process',
         ],
     ],
 ];
