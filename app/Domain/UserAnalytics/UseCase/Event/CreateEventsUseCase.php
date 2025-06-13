@@ -41,7 +41,10 @@ class CreateEventsUseCase
                 $values[] = json_encode($event->metadata);
             }
 
-            $this->eventRepository->batchInsert($values);
+            $count = (int) (count($values) / 4);
+            $placeholders = rtrim(str_repeat('(?, ?, ?, ?),', $count), ',');
+            $sql = "INSERT INTO events (user_id, type_id, timestamp, metadata) VALUES $placeholders";
+            $this->eventRepository->batchInsert($sql, $values);
         });
 
         return true;

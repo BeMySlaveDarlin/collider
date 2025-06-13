@@ -18,9 +18,12 @@ use Swoole\Coroutine;
 use Swoole\Coroutine\Channel;
 use Swoole\Coroutine\WaitGroup;
 
+use function ceil;
+use function sprintf;
+
 class SeedDatabaseUseCase
 {
-    public const int MAX_COROUTINES = 10;
+    public const int MAX_COROUTINES = 14;
     private Generator $faker;
     #[Inject]
     protected UserRepository $userRepository;
@@ -39,11 +42,14 @@ class SeedDatabaseUseCase
 
     public function execute(callable $logger): void
     {
-        \sleep(5);
+        Db::statement('SET session_replication_role = replica');
+        Db::statement("SET synchronous_commit = OFF");
+
+        $this->cleanDatabase($logger);
+
         $startTime = microtime(true);
         $startMemory = memory_get_usage(true);
 
-        $this->cleanDatabase($logger);
         $this->seedUsers($logger);
         $this->seedEventTypes($logger);
         $this->seedEvents($logger);
@@ -55,27 +61,30 @@ class SeedDatabaseUseCase
         $duration = $endTime - $startTime;
         $usedMemory = $endMemory - $startMemory;
 
-        $logger(\sprintf('Seeding completed in %.2f seconds.', $duration));
+        $logger(sprintf('Seeding completed in %.2f seconds.', $duration));
         $logger(
-            \sprintf(
+            sprintf(
                 'Memory used: %.2f MB (peak: %.2f MB)',
                 $usedMemory / 1024 / 1024,
                 $peakMemory / 1024 / 1024
             )
         );
+
+        Db::statement('SET session_replication_role = DEFAULT');
+        Db::statement("SET synchronous_commit = ON");
+
+        $this->userRepository->invalidateCaches();
+        $this->eventTypeRepository->invalidateCaches();
+        $this->eventRepository->invalidateCaches();
     }
 
     private function cleanDatabase(callable $logger): void
     {
         $logger('<fg=green> ● Cleaning old data...</fg=green>');
 
-        Db::statement('SET session_replication_role = replica');
-
         Db::statement('TRUNCATE TABLE events RESTART IDENTITY CASCADE');
         Db::statement('TRUNCATE TABLE event_types RESTART IDENTITY CASCADE');
         Db::statement('TRUNCATE TABLE users RESTART IDENTITY CASCADE');
-
-        Db::statement('SET session_replication_role = DEFAULT');
 
         $logger('  <fg=cyan>▶</fg=cyan> Old data removed', true);
     }
@@ -84,41 +93,35 @@ class SeedDatabaseUseCase
     {
         $logger('<fg=green> ● Seeding users...</fg=green>');
 
-        $values = [];
+        $count = $this->seedPolicy->getUsersCount();
+        $names = [];
 
-        for ($i = 1; $i <= $this->seedPolicy->getUsersCount(); $i++) {
-            $values[] = \sprintf('(%s)', Db::connection()->getPdo()->quote($this->faker->name()));
+        for ($i = 0; $i < $count; $i++) {
+            $names[] = $this->faker->name();
         }
 
-        $valuesStr = implode(',', $values);
-        $sql = "INSERT INTO users (name) VALUES $valuesStr;";
+        $placeholders = rtrim(str_repeat('( ? ),', $count), ',');
 
-        Db::statement($sql);
+        $sql = "INSERT INTO users (name) VALUES $placeholders";
 
-        $logger(\sprintf('  <fg=cyan>▶</fg=cyan> %s users created', count($values)), true);
+        Db::connection()->getPdo()->prepare($sql)->execute($names);
 
-        unset($values, $valuesStr, $sql);
+        $logger(sprintf('  <fg=cyan>▶</fg=cyan> %d users created', $count), true);
     }
 
     private function seedEventTypes(callable $logger): void
     {
         $logger('<fg=green> ● Seeding event types...</fg=green>');
 
-        $types = $this->seedPolicy->getEventTypes();
-        $values = [];
+        $types = array_keys($this->seedPolicy->getEventTypes());
+        $count = count($types);
 
-        foreach ($types as $type => $params) {
-            $values[] = \sprintf('(%s)', Db::connection()->getPdo()->quote($type));
-        }
+        $placeholders = rtrim(str_repeat('( ? ),', $count), ',');
+        $sql = "INSERT INTO event_types (name) VALUES $placeholders";
 
-        $valuesStr = implode(',', $values);
-        $sql = "INSERT INTO event_types (name) VALUES $valuesStr";
+        Db::connection()->getPdo()->prepare($sql)->execute($types);
 
-        Db::statement($sql);
-
-        $logger(\sprintf('  <fg=cyan>▶</fg=cyan> %s event types created', count($values)), true);
-
-        unset($types, $values, $valuesStr, $sql);
+        $logger(sprintf('  <fg=cyan>▶</fg=cyan> %d event types created', $count), true);
     }
 
     private function seedEvents(callable $logger): void
@@ -147,7 +150,10 @@ class SeedDatabaseUseCase
 
         $batchSize = $this->seedPolicy->getBatchSize();
         $totalEvents = $this->seedPolicy->getEventsCount();
-        $batches = (int) \ceil($totalEvents / $batchSize);
+        $batches = (int) ceil($totalEvents / $batchSize);
+
+        $placeholders = rtrim(str_repeat('(?, ?, ?, ?),', $batchSize), ',');
+        $sql = "INSERT INTO events (user_id, type_id, timestamp, metadata) VALUES $placeholders";
 
         $pools = new RandomSeedPool(
             userIds: $userIds,
@@ -159,15 +165,12 @@ class SeedDatabaseUseCase
             endTs: $nowTs
         );
 
-        Db::statement('SET session_replication_role = replica');
-        Db::statement('ALTER TABLE events DISABLE TRIGGER ALL');
-
-        $logger(\sprintf('  <fg=green>● Total %s chunks with %s events each will be processed:</fg=green>', $batches, $batchSize));
+        $logger(sprintf(' <fg=green>● Total %s chunks with %s events each will be processed</fg=green>', $batches, $batchSize));
 
         $waitGroup = new WaitGroup();
         $semaphore = new Channel(self::MAX_COROUTINES);
         for ($batch = 1; $batch <= $batches; $batch++) {
-            $batchParams = new BatchParamsDto($batch, $batches, $batchSize);
+            $batchParams = new BatchParamsDto($batch, $batches, $batchSize, $sql);
 
             $waitGroup->add();
 
@@ -184,21 +187,15 @@ class SeedDatabaseUseCase
 
         $waitGroup->wait();
 
-        Db::statement('ALTER TABLE events ENABLE TRIGGER ALL');
-        Db::statement('SET session_replication_role = DEFAULT');
-
-        $this->eventRepository->invalidateCaches();
-
         unset($pools, $userIds, $typeNameToId, $types, $typeNames, $referrers);
 
-        $logger('');
-        $logger(\sprintf('  <fg=cyan>▶</fg=cyan> %s events created', $totalEvents), true);
+        $logger(sprintf('  <fg=cyan>▶</fg=cyan> %s events created', $totalEvents), true);
     }
 
     private function seedChunk(callable $logger, BatchParamsDto $batchParams, RandomSeedPool $pools): void
     {
         if ($batchParams->batchSize <= 0) {
-            $logger(\sprintf('  <fg=cyan>▶</fg=cyan> Skipping empty chunk %s/%s', $batchParams->batch, $batchParams->batches));
+            $logger(sprintf('  <fg=cyan>▶</fg=cyan> Skipping empty chunk %s/%s', $batchParams->batch, $batchParams->batches));
 
             return;
         }
@@ -214,10 +211,8 @@ class SeedDatabaseUseCase
             $values[] = $pools->getRandomMetadata();
         }
 
-        $this->eventRepository->batchInsert($values);
+        $this->eventRepository->batchInsert($batchParams->sql, $values);
 
         unset($values, $placeholders);
-
-        $logger(\sprintf('  <fg=cyan>▶</fg=cyan> Chunk %s/%s processed', $batchParams->batch, $batchParams->batches));
     }
 }
