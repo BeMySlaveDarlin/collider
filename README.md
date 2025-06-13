@@ -6,11 +6,9 @@ Based on task: https://gist.github.com/BeMySlaveDarlin/102194669142f0d70ce7d0412
 
 ## Requirements
 
-- PHP 8.3+
-- Swoole 5.0+
-- PostgreSQL 15
-- Redis 7
 - Docker & Docker Compose
+- cmake
+- git
 
 ## Tech Stack
 
@@ -19,24 +17,6 @@ Based on task: https://gist.github.com/BeMySlaveDarlin/102194669142f0d70ce7d0412
 - **Database**: PostgreSQL 15
 - **Cache**: Redis 7
 - **Web Server**: NGINX
-
-## Architecture
-
-```
-collider/
-├── app/                        # Application code
-│   ├── Application/            # Infrastucture and core components
-│   ├── Domain/                 # Domain logic
-│   │   └── UserAnalytics/      # Analytics domain
-│   └── Endpoint/               # HTTP & Console endpoints
-├── bin/                        # Executable scripts
-├── config/                     # Configuration files
-│   └── autoload/               # Container configs
-├── docker/                     # Docker configurations
-├── docs/                       # Documentation
-├── migrations/                 # Database migrations
-└── runtime/                    # Runtime files
-```
 
 ## Quick Start
 

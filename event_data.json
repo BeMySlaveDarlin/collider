@@ -1,0 +1,9 @@
+{
+  "user_id": 123,
+  "event_type": "user.registered",
+  "timestamp": "2025-06-24 12:34:56",
+  "metadata": {
+    "page": "/home",
+    "button": "login"
+  }
+}
