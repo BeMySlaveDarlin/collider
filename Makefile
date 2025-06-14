@@ -23,7 +23,6 @@ start:
 
 stop:
 	docker compose down
-	rm -rf runtime/container
 
 restart: stop start
 
