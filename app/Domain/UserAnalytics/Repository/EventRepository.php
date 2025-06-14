@@ -9,8 +9,6 @@ use Hyperf\Cache\Annotation\Cacheable;
 use Hyperf\Cache\Annotation\CacheEvict;
 use Hyperf\DbConnection\Db;
 
-use function count;
-
 class EventRepository
 {
     #[Cacheable(prefix: 'events', value: '_count', ttl: 3600)]
@@ -119,7 +117,7 @@ class EventRepository
             $topPages[$row->page] += $pageCount;
         }
 
-        $uniqueUsersCount = count($users);
+        $uniqueUsersCount = \count($users);
         arsort($topPages);
         $topPages = array_slice($topPages, 0, $limit, true);
 
@@ -172,8 +170,6 @@ class EventRepository
         $statement->execute($values);
 
         $this->invalidateCaches();
-
-        unset($sql, $placeholders);
     }
 
     #[CacheEvict(prefix: 'events', all: true)]
