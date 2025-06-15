@@ -163,15 +163,6 @@ class EventRepository
         return $event;
     }
 
-    public function batchInsert(string $sql, array $values): void
-    {
-        $pdo = Db::connection()->getPdo();
-        $statement = $pdo->prepare($sql);
-        $statement->execute($values);
-
-        $this->invalidateCaches();
-    }
-
     #[CacheEvict(prefix: 'events', all: true)]
     public function invalidateCaches(): void
     {

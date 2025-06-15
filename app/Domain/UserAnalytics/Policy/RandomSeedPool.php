@@ -6,11 +6,9 @@ namespace App\Domain\UserAnalytics\Policy;
 
 use RuntimeException;
 
-use const BASE_PATH;
-
 class RandomSeedPool
 {
-    private const string CACHE_FILE = BASE_PATH . '/runtime/caches/seed_pool.cache';
+    private const string CACHE_FILE = \BASE_PATH . '/runtime/caches/seed_pool.cache';
 
     private array $userIdPool = [];
     private int $userIdCount = 0;
@@ -35,8 +33,7 @@ class RandomSeedPool
     public function __construct(
         protected SeedPolicy $seedPolicy,
         array $userIds,
-        array $typeNameToId,
-        int $count = 1000
+        array $typeNameToId
     ) {
         if ($this->loadFromCache()) {
             return;
@@ -47,19 +44,19 @@ class RandomSeedPool
         $startTs = strtotime('-30 days');
         $endTs = time();
 
-        $this->generateUserPools($userIds, $typeNames, $typeNameToId, $count);
-        $this->generateMetadataPool($types, $referrers, $count);
-        $this->generateTimestampPool($startTs, $endTs, $count);
+        $this->generateUserPools($userIds, $typeNames, $typeNameToId);
+        $this->generateTimestampPool($startTs, $endTs);
+        $this->generateMetadataPool($types, $referrers);
 
         $this->saveToCache();
     }
 
-    private function generateUserPools(array $userIds, array $typeNames, array $typeNameToId, int $count): void
+    private function generateUserPools(array $userIds, array $typeNames, array $typeNameToId): void
     {
         $userCount = count($userIds);
         $typeCount = count($typeNames);
 
-        for ($i = 0; $i < $count; $i++) {
+        for ($i = 0; $i < 1000; $i++) {
             $userIndex = $i % $userCount;
             $typeIndex = $i % $typeCount;
 
@@ -70,18 +67,18 @@ class RandomSeedPool
             $this->eventTypeIdPool[] = $typeNameToId[$typeName];
         }
 
-        $this->userIdCount = $count;
-        $this->typeNameCount = $count;
-        $this->eventTypeIdCount = $count;
+        $this->userIdCount = 1000;
+        $this->typeNameCount = 1000;
+        $this->eventTypeIdCount = 1000;
     }
 
-    private function generateMetadataPool(array $types, array $referrers, int $count): void
+    private function generateMetadataPool(array $types, array $referrers): void
     {
         $typeNames = array_keys($types);
         $typeCount = count($typeNames);
         $refCount = count($referrers);
 
-        for ($i = 0; $i < $count; $i++) {
+        for ($i = 0; $i < 100; $i++) {
             $typeIndex = $i % $typeCount;
             $refIndex = $i % $refCount;
 
@@ -89,26 +86,23 @@ class RandomSeedPool
             $page = $types[$typeName]['page'] ?? '/unknown';
             $referrer = $referrers[$refIndex];
 
-            $this->metadataPool[] = json_encode([
-                'page' => $page,
-                'referrer' => $referrer,
-            ], JSON_THROW_ON_ERROR);
+            $this->metadataPool[] = $this->encodeJsonLight($page, $referrer);
         }
 
-        $this->metadataCount = $count;
+        $this->metadataCount = 100;
     }
 
-    private function generateTimestampPool(int $startTs, int $endTs, int $count): void
+    private function generateTimestampPool(int $startTs, int $endTs): void
     {
         $timeRange = $endTs - $startTs;
-        $step = $timeRange / $count;
+        $step = $timeRange / 1000;
 
-        for ($i = 0; $i < $count; $i++) {
+        for ($i = 0; $i < 1000; $i++) {
             $ts = $startTs + (int) ($i * $step);
             $this->timestampPool[] = date('Y-m-d H:i:s', $ts);
         }
 
-        $this->timestampCount = $count;
+        $this->timestampCount = 1000;
     }
 
     public function getRandomUserId(): int
@@ -146,7 +140,7 @@ class RandomSeedPool
     private function saveToCache(): void
     {
         $cacheDir = dirname(self::CACHE_FILE);
-        if (!is_dir($cacheDir) && !mkdir($cacheDir, 0755, true) && !is_dir($cacheDir)) {
+        if (!is_dir($cacheDir) && !mkdir($cacheDir, 0o755, true) && !is_dir($cacheDir)) {
             throw new RuntimeException(sprintf('Directory "%s" was not created', $cacheDir));
         }
 
@@ -172,7 +166,23 @@ class RandomSeedPool
             return false;
         }
 
-        $data = unserialize(file_get_contents(self::CACHE_FILE));
+        /** @var string $file */
+        $file = file_get_contents(self::CACHE_FILE);
+
+        /** @var array{
+         *   userIdPool: array<int>,
+         *   userIdCount: int,
+         *   typeNamePool: array<string>,
+         *   typeNameCount: int,
+         *   eventTypeIdPool: array<int>,
+         *   eventTypeIdCount: int,
+         *   metadataPool: array<string>,
+         *   metadataCount: int,
+         *   timestampPool: array<string>,
+         *   timestampCount: int
+         * } $data
+         */
+        $data = unserialize($file);
 
         $this->userIdPool = $data['userIdPool'];
         $this->userIdCount = $data['userIdCount'];
@@ -193,5 +203,13 @@ class RandomSeedPool
         if (file_exists(self::CACHE_FILE)) {
             unlink(self::CACHE_FILE);
         }
+    }
+
+    private function encodeJsonLight(string $page, string $referrer): string
+    {
+        $safePage = str_replace(['\\', '"'], ['\\\\', '\"'], $page);
+        $safeRef = str_replace(['\\', '"'], ['\\\\', '\"'], $referrer);
+
+        return '{"page":"' . $safePage . '","referrer":"' . $safeRef . '"}';
     }
 }

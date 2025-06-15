@@ -8,19 +8,23 @@ use Carbon\Carbon;
 
 final class SeedingMetricsDto
 {
-    public readonly Carbon $startTime;
-    public readonly int $startMemory;
+    public ?Carbon $startTime = null;
     public ?Carbon $endTime = null;
+    public int $startMemory = 0;
     public int $endMemory = 0;
     public int $peakMemory = 0;
 
     public function __construct()
     {
+    }
+
+    public function init(): void
+    {
         $this->startTime = Carbon::now();
         $this->startMemory = memory_get_usage(true);
     }
 
-    public function finish(): void
+    public function collect(): void
     {
         $this->endTime = Carbon::now();
         $this->endMemory = memory_get_usage(true);
@@ -29,7 +33,7 @@ final class SeedingMetricsDto
 
     public function getDuration(): float
     {
-        return ((float) ($this->endTime?->getTimestampMs() ?? \microtime(true)) - $this->startTime->getTimestampMs()) / 1000;
+        return ($this->endTime?->getTimestampMs() - $this->startTime?->getTimestampMs()) / 1000;
     }
 
     public function getUsedMemory(): float
@@ -49,7 +53,7 @@ final class SeedingMetricsDto
 
     public function getFormattedStartTime(): string
     {
-        return $this->startTime->format('Y-m-d H:i:s.u');
+        return $this->startTime?->format('Y-m-d H:i:s.u') ?? \date('Y-m-d H:i:s.u');
     }
 
     public function getFormattedEndTime(): string
