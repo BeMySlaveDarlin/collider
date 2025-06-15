@@ -20,10 +20,10 @@ class GetStatsUseCase
 
     public function execute(GetStatsRequest $request): GetStatsResponse
     {
-        $eventType = null;
+        $eventTypeId = null;
         if ($request->type) {
-            $eventType = $this->eventTypeRepository->findByName($request->type);
-            if ($eventType === null) {
+            $eventTypeId = $this->eventTypeRepository->findIdByName($request->type);
+            if ($eventTypeId === null) {
                 throw new NotFoundHttpException(sprintf('Event type "%s" not found', $request->type));
             }
         }
@@ -32,7 +32,7 @@ class GetStatsUseCase
             $request->limit,
             $request->from?->format('Y-m-d H:i:s'),
             $request->to?->format('Y-m-d H:i:s'),
-            $eventType?->id
+            $eventTypeId
         );
 
         return new GetStatsResponse(

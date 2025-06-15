@@ -6,29 +6,26 @@ namespace App\Domain\UserAnalytics\UseCase\Event;
 
 use App\Domain\UserAnalytics\Policy\RandomSeedPool;
 use App\Domain\UserAnalytics\Policy\SeedPolicy;
-use App\Domain\UserAnalytics\Repository\EventRepository;
 use App\Domain\UserAnalytics\Repository\EventTypeRepository;
 use App\Domain\UserAnalytics\Repository\UserRepository;
 use App\Domain\UserAnalytics\ValueObject\BatchParamsDto;
 use Carbon\Carbon;
 use Faker\Factory;
 use Faker\Generator;
+use Hyperf\Coroutine\Coroutine;
+use Hyperf\Coroutine\WaitGroup;
 use Hyperf\DbConnection\Db;
 use Hyperf\Di\Annotation\Inject;
-use Swoole\Coroutine;
-use Swoole\Coroutine\Channel;
-use Swoole\Coroutine\WaitGroup;
+use Hyperf\Engine\Channel;
 
 class SeedDatabaseUseCase
 {
-    public const int MAX_COROUTINES = 14;
+    public const int MAX_COROUTINES = 10;
     private Generator $faker;
     #[Inject]
     protected UserRepository $userRepository;
     #[Inject]
     protected EventTypeRepository $eventTypeRepository;
-    #[Inject]
-    protected EventRepository $eventRepository;
 
     #[Inject]
     protected SeedPolicy $seedPolicy;
@@ -46,6 +43,7 @@ class SeedDatabaseUseCase
         $this->seedUsers($logger);
         $this->seedEventTypes($logger);
         $this->seedEvents($logger);
+        $this->checkCountEvents($logger);
 
         $this->setDbDefaults($logger);
     }
@@ -107,30 +105,24 @@ class SeedDatabaseUseCase
             return;
         }
 
-        $nowTs = time();
-        $startTs = strtotime('-30 days');
-        $typeNames = array_keys($typeNameToId);
-        $types = $this->seedPolicy->getEventTypes();
-        $referrers = $this->seedPolicy->getReferrers();
         $batchSize = $this->seedPolicy->getBatchSize();
         $totalEvents = $this->seedPolicy->getEventsCount();
         $batches = (int) \ceil($totalEvents / $batchSize);
+        $pools = new RandomSeedPool($this->seedPolicy, $userIds, $typeNameToId);
 
         $logger(\sprintf(' <fg=green>📦 Total %s chunks with %s events each will be processed</fg=green>', $batches, $batchSize));
-
-        $placeholders = rtrim(str_repeat('(?, ?, ?, ?),', $batchSize), ',');
-        $sql = "INSERT INTO events (user_id, type_id, timestamp, metadata) VALUES $placeholders";
-        $pools = new RandomSeedPool($userIds, $typeNameToId, $typeNames, $types, $referrers, $startTs, $nowTs);
 
         $waitGroup = new WaitGroup();
         $semaphore = new Channel($this->getMaxCoroutines());
         for ($batch = 1; $batch <= $batches; $batch++) {
             $waitGroup->add();
-            $batchParams = new BatchParamsDto($batch, $batches, $batchSize, $sql);
+            $batchParams = new BatchParamsDto($batch, $batches, $batchSize);
             Coroutine::create(function () use ($waitGroup, $semaphore, $batchParams, $pools) {
                 $semaphore->push(1);
                 try {
                     $this->seedChunk($batchParams, $pools);
+                } catch (\Throwable $e) {
+                    // ignore
                 } finally {
                     $semaphore->pop();
                     $waitGroup->done();
@@ -139,20 +131,35 @@ class SeedDatabaseUseCase
         }
         $waitGroup->wait();
 
-        $logger('');
-        $this->printResultMessage($logger, \sprintf('%s events created', $totalEvents));
+        $this->printResultMessage($logger, sprintf('%s chunks processed', $batches));
+    }
+
+    private function checkCountEvents(callable $logger): void
+    {
+        $this->printStartMessage($logger, 'Checking event count in database');
+        $results = Db::selectOne('SELECT COUNT(*) as count FROM events');
+
+        $this->printResultMessage($logger, \sprintf('%s events in database', $results->count));
     }
 
     private function seedChunk(BatchParamsDto $batchParams, RandomSeedPool $pools): void
     {
+        $pdo = Db::connection()->getPdo();
         $values = [];
         for ($i = 1; $i <= $batchParams->batchSize; $i++) {
-            $values[] = $pools->getRandomUserId();
-            $values[] = $pools->getRandomEventTypeId();
-            $values[] = $pools->getRandomTimestamp();
-            $values[] = $pools->getRandomMetadata();
+            $values[] = sprintf(
+                "(%d,%d,%s,%s)",
+                $pools->getRandomUserId(),
+                $pools->getRandomEventTypeId(),
+                $pdo->quote($pools->getRandomTimestamp()),
+                $pdo->quote($pools->getRandomMetadata()),
+            );
         }
-        $this->eventRepository->batchInsert($batchParams->sql, $values);
+        $values = \implode(',', $values);
+        $sql = "INSERT INTO events (user_id, type_id, timestamp, metadata) VALUES $values";
+        $pdo->query($sql);
+
+        unset($sql);
     }
 
     private function prepareDb(callable $logger): void
@@ -160,7 +167,6 @@ class SeedDatabaseUseCase
         $this->printStartMessage($logger, 'Preparing database');
 
         Db::statement('SET session_replication_role = replica');
-        Db::statement('SET synchronous_commit = OFF');
 
         $this->printResultMessage($logger, 'Done');
     }
@@ -170,7 +176,6 @@ class SeedDatabaseUseCase
         $this->printStartMessage($logger, 'Setting database to defaults');
 
         Db::statement('SET session_replication_role = DEFAULT');
-        Db::statement('SET synchronous_commit = ON');
 
         $this->printResultMessage($logger, 'Done');
     }
@@ -198,7 +203,7 @@ class SeedDatabaseUseCase
     private function getMaxCoroutines(): int
     {
         $numprocs = (int) shell_exec('nproc') ?: 2;
-        $numCoro = $numprocs * 3;
+        $numCoro = $numprocs * 2;
 
         return max($numCoro, self::MAX_COROUTINES);
     }

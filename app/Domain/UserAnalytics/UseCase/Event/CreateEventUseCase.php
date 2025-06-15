@@ -29,8 +29,8 @@ class CreateEventUseCase
             throw new NotFoundHttpException('User not found');
         }
 
-        $eventType = $this->eventTypeRepository->findByName($request->eventType);
-        if (!$eventType) {
+        $eventTypeId = $this->eventTypeRepository->findIdByName($request->eventType);
+        if (!$eventTypeId) {
             $eventType = new EventType();
             $eventType->name = $request->eventType;
             $this->eventTypeRepository->save($eventType);
@@ -38,7 +38,7 @@ class CreateEventUseCase
 
         $event = new Event();
         $event->user_id = $request->userId;
-        $event->type_id = $eventType->id;
+        $event->type_id = $eventTypeId;
         $event->timestamp = $request->timestamp;
         $event->metadata = $request->metadata;
 

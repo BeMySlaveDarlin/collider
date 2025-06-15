@@ -8,7 +8,7 @@ class SeedPolicy
 {
     private const int USERS_COUNT = 1_000;
     private const int EVENTS_COUNT = 10_000_000;
-    private const int BATCH_SIZE = 10_000;
+    private const int BATCH_SIZE = 16_000;
 
     private const array REFERRERS = [
         'https://google.com',

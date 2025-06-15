@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\UserAnalytics\Policy;
 
+use RuntimeException;
+
+use const BASE_PATH;
+
 class RandomSeedPool
 {
+    private const string CACHE_FILE = BASE_PATH . '/runtime/caches/seed_pool.cache';
+
     private array $userIdPool = [];
     private int $userIdCount = 0;
 
@@ -21,19 +27,31 @@ class RandomSeedPool
     private array $timestampPool = [];
     private int $timestampCount = 0;
 
+    private int $userCounter = 0;
+    private int $typeCounter = 0;
+    private int $metadataCounter = 0;
+    private int $timestampCounter = 0;
+
     public function __construct(
+        protected SeedPolicy $seedPolicy,
         array $userIds,
         array $typeNameToId,
-        array $typeNames,
-        array $types,
-        array $referrers,
-        int $startTs,
-        int $endTs,
         int $count = 1000
     ) {
+        if ($this->loadFromCache()) {
+            return;
+        }
+        $typeNames = array_keys($typeNameToId);
+        $types = $this->seedPolicy->getEventTypes();
+        $referrers = $this->seedPolicy->getReferrers();
+        $startTs = strtotime('-30 days');
+        $endTs = time();
+
         $this->generateUserPools($userIds, $typeNames, $typeNameToId, $count);
         $this->generateMetadataPool($types, $referrers, $count);
         $this->generateTimestampPool($startTs, $endTs, $count);
+
+        $this->saveToCache();
     }
 
     private function generateUserPools(array $userIds, array $typeNames, array $typeNameToId, int $count): void
@@ -42,9 +60,12 @@ class RandomSeedPool
         $typeCount = count($typeNames);
 
         for ($i = 0; $i < $count; $i++) {
-            $typeName = $typeNames[random_int(0, $typeCount - 1)];
+            $userIndex = $i % $userCount;
+            $typeIndex = $i % $typeCount;
 
-            $this->userIdPool[] = $userIds[random_int(0, $userCount - 1)];
+            $typeName = $typeNames[$typeIndex];
+
+            $this->userIdPool[] = $userIds[$userIndex];
             $this->typeNamePool[] = $typeName;
             $this->eventTypeIdPool[] = $typeNameToId[$typeName];
         }
@@ -61,9 +82,12 @@ class RandomSeedPool
         $refCount = count($referrers);
 
         for ($i = 0; $i < $count; $i++) {
-            $typeName = $typeNames[random_int(0, $typeCount - 1)];
+            $typeIndex = $i % $typeCount;
+            $refIndex = $i % $refCount;
+
+            $typeName = $typeNames[$typeIndex];
             $page = $types[$typeName]['page'] ?? '/unknown';
-            $referrer = $referrers[random_int(0, $refCount - 1)];
+            $referrer = $referrers[$refIndex];
 
             $this->metadataPool[] = json_encode([
                 'page' => $page,
@@ -76,9 +100,12 @@ class RandomSeedPool
 
     private function generateTimestampPool(int $startTs, int $endTs, int $count): void
     {
+        $timeRange = $endTs - $startTs;
+        $step = $timeRange / $count;
+
         for ($i = 0; $i < $count; $i++) {
-            $randTs = random_int($startTs, $endTs);
-            $this->timestampPool[] = date('Y-m-d H:i:s', $randTs);
+            $ts = $startTs + (int) ($i * $step);
+            $this->timestampPool[] = date('Y-m-d H:i:s', $ts);
         }
 
         $this->timestampCount = $count;
@@ -86,26 +113,85 @@ class RandomSeedPool
 
     public function getRandomUserId(): int
     {
-        return $this->userIdPool[random_int(0, $this->userIdCount - 1)];
-    }
+        $userId = $this->userIdPool[$this->userCounter];
+        $this->userCounter = ($this->userCounter + 1) % $this->userIdCount;
 
-    public function getRandomTypeName(): string
-    {
-        return $this->typeNamePool[random_int(0, $this->typeNameCount - 1)];
+        return $userId;
     }
 
     public function getRandomEventTypeId(): int
     {
-        return $this->eventTypeIdPool[random_int(0, $this->eventTypeIdCount - 1)];
+        $eventTypeId = $this->eventTypeIdPool[$this->typeCounter];
+        $this->typeCounter = ($this->typeCounter + 1) % $this->eventTypeIdCount;
+
+        return $eventTypeId;
     }
 
     public function getRandomMetadata(): string
     {
-        return $this->metadataPool[random_int(0, $this->metadataCount - 1)];
+        $metadata = $this->metadataPool[$this->metadataCounter];
+        $this->metadataCounter = ($this->metadataCounter + 1) % $this->metadataCount;
+
+        return $metadata;
     }
 
     public function getRandomTimestamp(): string
     {
-        return $this->timestampPool[random_int(0, $this->timestampCount - 1)];
+        $timestamp = $this->timestampPool[$this->timestampCounter];
+        $this->timestampCounter = ($this->timestampCounter + 1) % $this->timestampCount;
+
+        return $timestamp;
+    }
+
+    private function saveToCache(): void
+    {
+        $cacheDir = dirname(self::CACHE_FILE);
+        if (!is_dir($cacheDir) && !mkdir($cacheDir, 0755, true) && !is_dir($cacheDir)) {
+            throw new RuntimeException(sprintf('Directory "%s" was not created', $cacheDir));
+        }
+
+        $data = [
+            'userIdPool' => $this->userIdPool,
+            'userIdCount' => $this->userIdCount,
+            'typeNamePool' => $this->typeNamePool,
+            'typeNameCount' => $this->typeNameCount,
+            'eventTypeIdPool' => $this->eventTypeIdPool,
+            'eventTypeIdCount' => $this->eventTypeIdCount,
+            'metadataPool' => $this->metadataPool,
+            'metadataCount' => $this->metadataCount,
+            'timestampPool' => $this->timestampPool,
+            'timestampCount' => $this->timestampCount,
+        ];
+
+        file_put_contents(self::CACHE_FILE, serialize($data));
+    }
+
+    private function loadFromCache(): bool
+    {
+        if (!file_exists(self::CACHE_FILE)) {
+            return false;
+        }
+
+        $data = unserialize(file_get_contents(self::CACHE_FILE));
+
+        $this->userIdPool = $data['userIdPool'];
+        $this->userIdCount = $data['userIdCount'];
+        $this->typeNamePool = $data['typeNamePool'];
+        $this->typeNameCount = $data['typeNameCount'];
+        $this->eventTypeIdPool = $data['eventTypeIdPool'];
+        $this->eventTypeIdCount = $data['eventTypeIdCount'];
+        $this->metadataPool = $data['metadataPool'];
+        $this->metadataCount = $data['metadataCount'];
+        $this->timestampPool = $data['timestampPool'];
+        $this->timestampCount = $data['timestampCount'];
+
+        return true;
+    }
+
+    public static function clearCache(): void
+    {
+        if (file_exists(self::CACHE_FILE)) {
+            unlink(self::CACHE_FILE);
+        }
     }
 }

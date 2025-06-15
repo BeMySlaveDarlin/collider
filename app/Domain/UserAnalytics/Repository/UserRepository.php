@@ -12,9 +12,16 @@ use PDO;
 
 class UserRepository
 {
-    public function findById(int $id): ?User
+    public function findById(int $id): ?int
     {
-        return User::find($id);
+        $statement = Db::connection()
+            ->getPdo()
+            ->prepare('SELECT id FROM users WHERE id = :id LIMIT 1');
+
+        $statement->execute(['id' => $id]);
+        $result = $statement->fetchColumn();
+
+        return $result !== false ? (int) $result : null;
     }
 
     #[Cacheable(prefix: 'users', value: '_all_ids', ttl: 3600)]

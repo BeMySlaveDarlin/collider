@@ -9,6 +9,8 @@ use App\Domain\UserAnalytics\ValueObject\SeedingMetricsDto;
 use Exception;
 use Hyperf\Command\Annotation\Command;
 use Hyperf\Command\Command as HyperfCommand;
+use Hyperf\Coroutine\Coroutine;
+use Hyperf\DbConnection\Db;
 use Hyperf\Di\Annotation\Inject;
 use Psr\Log\LoggerInterface;
 use Psr\SimpleCache\CacheInterface;
@@ -25,19 +27,13 @@ class EventsSeedCommand extends HyperfCommand
 
     protected function handle(): int
     {
+        $this->warmup();
         $this->printBegin();
 
         try {
             $metrics = new SeedingMetricsDto();
 
-            $this->seedDatabaseUseCase->execute(
-                function (string $message, bool $newLine = false) {
-                    $this->line($message);
-                    if ($newLine) {
-                        $this->output->writeln('');
-                    }
-                }
-            );
+            $this->seedDatabaseUseCase->execute(logger: $this->getLineLogger());
 
             $this->printMetrics($metrics);
 
@@ -88,5 +84,25 @@ class EventsSeedCommand extends HyperfCommand
         $this->info(sprintf('Duration: %.2f seconds', $metrics->getDuration()));
         $this->info(sprintf('Memory used: %.2f MB (peak: %.2f MB)', $metrics->getUsedMemoryMb(), $metrics->getPeakMemoryMb()));
         $this->output->writeln('');
+    }
+
+    private function getLineLogger(): \Closure
+    {
+        return function (string $message, bool $newLine = false) {
+            $this->line($message);
+            if ($newLine) {
+                $this->output->writeln('');
+            }
+        };
+    }
+
+    private function warmup(): void
+    {
+        Coroutine::create(static function () {
+            for ($i = 1; $i <= 100; $i++) {
+                $pdo = Db::connection()->getPdo();
+                $pdo->query("SELECT 1");
+            }
+        });
     }
 }

@@ -12,9 +12,16 @@ use PDO;
 
 class EventTypeRepository
 {
-    public function findByName(string $name): ?EventType
+    public function findIdByName(string $name): ?int
     {
-        return EventType::where('name', $name)->first();
+        $statement = Db::connection()
+            ->getPdo()
+            ->prepare('SELECT id FROM event_types WHERE name = :name LIMIT 1');
+
+        $statement->execute(['name' => $name]);
+        $id = $statement->fetchColumn();
+
+        return $id !== false ? (int) $id : null;
     }
 
     #[Cacheable(prefix: 'event_types', value: '_map', ttl: 3600)]
