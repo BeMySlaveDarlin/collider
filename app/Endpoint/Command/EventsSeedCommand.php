@@ -6,10 +6,10 @@ namespace App\Endpoint\Command;
 
 use App\Domain\UserAnalytics\UseCase\Event\SeedDatabaseUseCase;
 use App\Domain\UserAnalytics\ValueObject\SeedingMetricsDto;
+use Closure;
 use Exception;
 use Hyperf\Command\Annotation\Command;
 use Hyperf\Command\Command as HyperfCommand;
-use Hyperf\Coroutine\Coroutine;
 use Hyperf\DbConnection\Db;
 use Hyperf\Di\Annotation\Inject;
 use Psr\Log\LoggerInterface;
@@ -33,11 +33,11 @@ class EventsSeedCommand extends HyperfCommand
         try {
             $metrics = new SeedingMetricsDto();
 
-            $this->seedDatabaseUseCase->execute(logger: $this->getLineLogger());
-
-            $this->printMetrics($metrics);
+            $this->seedDatabaseUseCase->execute(logger: $this->getLineLogger(), metrics: $metrics);
 
             $this->printFinish();
+
+            $this->printMetrics($metrics);
 
             $this->cache->clear();
 
@@ -77,16 +77,15 @@ class EventsSeedCommand extends HyperfCommand
 
     private function printMetrics(SeedingMetricsDto $metrics): void
     {
-        $metrics->finish();
-
-        $this->info(sprintf('Started at: %s', $metrics->getFormattedStartTime()));
-        $this->info(sprintf('Ended at: %s', $metrics->getFormattedEndTime()));
-        $this->info(sprintf('Duration: %.2f seconds', $metrics->getDuration()));
-        $this->info(sprintf('Memory used: %.2f MB (peak: %.2f MB)', $metrics->getUsedMemoryMb(), $metrics->getPeakMemoryMb()));
+        $this->info(sprintf('- Started at: %s', $metrics->getFormattedStartTime()));
+        $this->info(sprintf('- Ended at: %s', $metrics->getFormattedEndTime()));
+        $this->info(sprintf('- Duration: %.2f seconds', $metrics->getDuration()));
+        $this->info(sprintf('- Memory/Worker: %.2f MB (peak: %.2f MB)', $metrics->getUsedMemoryMb(), $metrics->getPeakMemoryMb()));
+        $this->info(sprintf('- CPUs used: %s', (int) shell_exec('nproc') ?: 1));
         $this->output->writeln('');
     }
 
-    private function getLineLogger(): \Closure
+    private function getLineLogger(): Closure
     {
         return function (string $message, bool $newLine = false) {
             $this->line($message);
@@ -98,11 +97,8 @@ class EventsSeedCommand extends HyperfCommand
 
     private function warmup(): void
     {
-        Coroutine::create(static function () {
-            for ($i = 1; $i <= 100; $i++) {
-                $pdo = Db::connection()->getPdo();
-                $pdo->query("SELECT 1");
-            }
-        });
+        for ($i = 1; $i <= 100; $i++) {
+            Db::connection()->getPdo()->query('SELECT 1');
+        }
     }
 }

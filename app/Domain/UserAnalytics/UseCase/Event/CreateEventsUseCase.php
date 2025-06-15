@@ -8,6 +8,7 @@ use App\Domain\UserAnalytics\Repository\EventRepository;
 use App\Domain\UserAnalytics\Repository\EventTypeRepository;
 use App\Domain\UserAnalytics\Repository\UserRepository;
 use App\Domain\UserAnalytics\ValueObject\CreateEventsRequest;
+use Hyperf\DbConnection\Db;
 use Hyperf\Di\Annotation\Inject;
 use Swoole\Coroutine;
 
@@ -44,7 +45,12 @@ class CreateEventsUseCase
             $count = (int) (count($values) / 4);
             $placeholders = rtrim(str_repeat('(?, ?, ?, ?),', $count), ',');
             $sql = "INSERT INTO events (user_id, type_id, timestamp, metadata) VALUES $placeholders";
-            $this->eventRepository->batchInsert($sql, $values);
+            $pdo = Db::connection()->getPdo();
+            $statement = $pdo->prepare($sql);
+            $statement->execute($values);
+
+            $this->eventTypeRepository->invalidateCaches();
+            $this->eventRepository->invalidateCaches();
 
             unset($eventTypeIdMap, $userIds, $sql, $placeholders, $values);
         });

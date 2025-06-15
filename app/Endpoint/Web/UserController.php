@@ -8,7 +8,6 @@ use App\Domain\UserAnalytics\UseCase\User\CreateUserUseCase;
 use App\Domain\UserAnalytics\UseCase\User\GetUserEventsUseCase;
 use App\Domain\UserAnalytics\ValueObject\CreateUserRequest;
 use App\Domain\UserAnalytics\ValueObject\GetUserEventsRequest;
-use Faker\Factory;
 use Hyperf\Di\Annotation\Inject;
 use Psr\Http\Message\ServerRequestInterface;
 
@@ -22,7 +21,7 @@ class UserController extends AbstractController
     public function create(): array
     {
         $createUserRequest = new CreateUserRequest(
-            name: Factory::create()->name()
+            name: md5(random_bytes(4))
         );
 
         $user = $this->createUserUseCase->execute($createUserRequest);
@@ -35,7 +34,7 @@ class UserController extends AbstractController
     public function events(ServerRequestInterface $request, int $userId): array
     {
         $query = $request->getQueryParams();
-        $limit = max(1, (int) ($query['limit'] ?? 1));
+        $limit = max(1, (int) ($query['limit'] ?? 1000));
 
         $userEventsRequest = new GetUserEventsRequest(
             userId: $userId,
@@ -49,7 +48,7 @@ class UserController extends AbstractController
             'query' => [
                 'page' => 1,
                 'limit' => $limit,
-                'total' => count($result->events),
+                'total' => $result->total,
             ],
         ];
     }

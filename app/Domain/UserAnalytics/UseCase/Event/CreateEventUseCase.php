@@ -30,10 +30,12 @@ class CreateEventUseCase
         }
 
         $eventTypeId = $this->eventTypeRepository->findIdByName($request->eventType);
-        if (!$eventTypeId) {
+        if ($eventTypeId === null) {
             $eventType = new EventType();
             $eventType->name = $request->eventType;
             $this->eventTypeRepository->save($eventType);
+
+            $eventTypeId = $eventType->id;
         }
 
         $event = new Event();

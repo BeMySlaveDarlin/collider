@@ -18,18 +18,16 @@ class GetEventsUseCase
     {
         $offset = ($request->page - 1) * $request->limit;
 
-        $events = $this->eventRepository->findWithPagination(
+        $result = $this->eventRepository->findWithPagination(
             $request->limit,
             $offset
         );
 
-        $total = $this->eventRepository->countAll();
-
         return new GetEventsResponse(
-            events: $events,
+            events: $result['rows'],
             page: $request->page,
             limit: $request->limit,
-            total: $total
+            total: $result['total'],
         );
     }
 }

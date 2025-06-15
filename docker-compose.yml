@@ -97,6 +97,7 @@ services:
     ports:
       - "${DB_PORTS:-5432:5432}"
     volumes:
+      - .:/opt/www
       - database-data:/var/lib/postgresql/data
       - ./docker/database/init:/docker-entrypoint-initdb.d
       - ./docker/database/postgresql.conf:/etc/postgresql/postgresql.conf
@@ -125,6 +126,7 @@ services:
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
+      - .:/opt/www
       - redis-data:/data
       - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
     networks:

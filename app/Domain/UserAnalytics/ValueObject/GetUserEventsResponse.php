@@ -7,7 +7,8 @@ namespace App\Domain\UserAnalytics\ValueObject;
 class GetUserEventsResponse
 {
     public function __construct(
-        public array $events
+        public array $events,
+        public int $total,
     ) {
     }
 }

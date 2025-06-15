@@ -5,12 +5,20 @@ declare(strict_types=1);
 namespace App\Domain\UserAnalytics\Repository;
 
 use App\Domain\UserAnalytics\Entity\Event;
+use DomainException;
 use Hyperf\Cache\Annotation\Cacheable;
 use Hyperf\Cache\Annotation\CacheEvict;
 use Hyperf\DbConnection\Db;
+use Hyperf\Di\Annotation\Inject;
+use Hyperf\HttpMessage\Exception\NotFoundHttpException;
 
 class EventRepository
 {
+    #[Inject]
+    protected UserRepository $userRepository;
+    #[Inject]
+    protected EventTypeRepository $eventTypeRepository;
+
     #[Cacheable(prefix: 'events', value: '_count', ttl: 3600)]
     public function countAll(): int
     {
@@ -23,6 +31,11 @@ class EventRepository
     #[Cacheable(prefix: 'events', value: '_user_#{userId}_#{limit}', ttl: 3600)]
     public function findByUserId(int $userId, int $limit = 1000): array
     {
+        $user = $this->userRepository->findById($userId);
+        if (!$user) {
+            throw new DomainException('User not found');
+        }
+
         $sql = '
             SELECT events.*, event_types.name AS type
             FROM events
@@ -33,13 +46,9 @@ class EventRepository
         ';
 
         $rows = Db::select($sql, [$userId, $limit]);
-        foreach ($rows as &$row) {
-            if (isset($row->metadata)) {
-                $row->metadata = json_decode($row->metadata, true, 512, JSON_THROW_ON_ERROR);
-            }
-        }
+        $total = $this->countAll();
 
-        return $rows;
+        return $this->prepareResult($rows, $total);
     }
 
     #[Cacheable(prefix: 'events', value: '_page_#{limit}_#{offset}', ttl: 3600)]
@@ -54,13 +63,9 @@ class EventRepository
         ';
 
         $rows = Db::select($sql, [$limit, $offset]);
-        foreach ($rows as &$row) {
-            if (isset($row->metadata)) {
-                $row->metadata = json_decode($row->metadata, true, 512, JSON_THROW_ON_ERROR);
-            }
-        }
+        $total = $this->countAll();
 
-        return $rows;
+        return $this->prepareResult($rows, $total);
     }
 
     #[Cacheable(prefix: 'events', value: '_stats_#{limit}_#{eventTypeId}_#{from}_#{to}', ttl: 3600)]
@@ -68,8 +73,16 @@ class EventRepository
         int $limit = 3,
         ?string $from = null,
         ?string $to = null,
-        ?int $eventTypeId = null
+        ?string $eventType = null
     ): array {
+        $eventTypeId = null;
+        if ($eventType) {
+            $eventTypeId = $this->eventTypeRepository->findIdByName($eventType);
+            if ($eventTypeId === null) {
+                throw new NotFoundHttpException(sprintf('Event type "%s" not found', $eventType));
+            }
+        }
+
         $whereConditions = [];
         $parameters = [];
 
@@ -163,17 +176,23 @@ class EventRepository
         return $event;
     }
 
-    public function batchInsert(string $sql, array $values): void
-    {
-        $pdo = Db::connection()->getPdo();
-        $statement = $pdo->prepare($sql);
-        $statement->execute($values);
-
-        $this->invalidateCaches();
-    }
-
     #[CacheEvict(prefix: 'events', all: true)]
     public function invalidateCaches(): void
     {
+    }
+
+    private function prepareResult(array $rows, int $total = 0): array
+    {
+        foreach ($rows as &$row) {
+            if (isset($row->metadata)) {
+                $row->metadata = json_decode($row->metadata, true, 512, JSON_THROW_ON_ERROR);
+            }
+        }
+        unset($row);
+
+        return [
+            'total' => $total,
+            'rows' => $rows,
+        ];
     }
 }

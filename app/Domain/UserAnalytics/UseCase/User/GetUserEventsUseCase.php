@@ -8,7 +8,6 @@ use App\Domain\UserAnalytics\Repository\EventRepository;
 use App\Domain\UserAnalytics\Repository\UserRepository;
 use App\Domain\UserAnalytics\ValueObject\GetUserEventsRequest;
 use App\Domain\UserAnalytics\ValueObject\GetUserEventsResponse;
-use DomainException;
 use Hyperf\Di\Annotation\Inject;
 
 class GetUserEventsUseCase
@@ -20,18 +19,14 @@ class GetUserEventsUseCase
 
     public function execute(GetUserEventsRequest $request): GetUserEventsResponse
     {
-        $user = $this->userRepository->findById($request->userId);
-        if (!$user) {
-            throw new DomainException('User not found');
-        }
-
-        $events = $this->eventRepository->findByUserId(
+        $result = $this->eventRepository->findByUserId(
             $request->userId,
             $request->limit
         );
 
         return new GetUserEventsResponse(
-            events: $events
+            events: $result['rows'],
+            total: $result['total']
         );
     }
 }
