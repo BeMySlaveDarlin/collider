@@ -6,11 +6,9 @@ Based on task: https://gist.github.com/BeMySlaveDarlin/102194669142f0d70ce7d0412
 
 ## Requirements
 
-- PHP 8.3+
-- Swoole 5.0+
-- PostgreSQL 15
-- Redis 7
 - Docker & Docker Compose
+- cmake
+- git
 
 ## Tech Stack
 
